@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RentFlow — Landlord Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    * { font-family: 'Inter', sans-serif; }
+
+    .step-inactive { opacity: 0.4; pointer-events: none; }
+    .badge-approved  { background: #d1fae5; color: #065f46; }
+    .badge-review    { background: #fef9c3; color: #854d0e; }
+    .badge-rejected  { background: #fee2e2; color: #991b1b; }
+
+    /* Score ring */
+    .ring-wrap { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+    .ring-wrap svg { transform: rotate(-90deg); }
+    .ring-wrap .ring-bg  { fill: none; stroke: #e5e7eb; stroke-width: 6; }
+    .ring-wrap .ring-val { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .6s ease; }
+    .ring-wrap .ring-text {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700; color: #111827;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 18px; height: 18px; border: 2px solid #e5e7eb;
+      border-top-color: #6366f1; border-radius: 50%;
+      animation: spin .7s linear infinite; display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Pulse dot for live status — static, no animation */
+    .pulse-dot {
+      width: 10px; height: 10px; border-radius: 50%; background: #22c55e;
+      flex-shrink: 0;
+    }
+
+    .pop-in { /* no animation — instant render */ }
+
+    /* Scrollbar */
+    .thin-scroll::-webkit-scrollbar { width: 4px; }
+    .thin-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+
+    /* Provenance highlight */
+    mark { background: #fef08a; border-radius: 2px; padding: 0 2px; }
+
+    /* Tab underline */
+    .tab-active { border-bottom: 2px solid #6366f1; color: #4f46e5; font-weight: 600; }
+    .tab-inactive { border-bottom: 2px solid transparent; color: #6b7280; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
+<header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
+        </svg>
+      </div>
+      <span class="text-xl font-bold text-gray-900 tracking-tight">RentFlow</span>
+      <span class="text-xs text-gray-400 font-medium mt-0.5">Landlord Dashboard</span>
+    </div>
+    <div id="listing-badge" class="hidden items-center gap-2 bg-green-50 border border-green-200 rounded-full px-3 py-1.5">
+      <div class="pulse-dot"></div>
+      <span class="text-sm font-medium text-green-700" id="listing-badge-text">Listing Live</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── MAIN ───────────────────────────────────────────────────────────────── -->
+<main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  <!-- ── COL 1: Create Listing ──────────────────────────────────────────── -->
+  <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col gap-5" id="col-listing">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">1</span>
+        <h2 class="text-base font-semibold text-gray-900">Create Listing</h2>
+      </div>
+      <p class="text-xs text-gray-500">Set your apartment details and screening criteria. Once live, the webhook opens.</p>
+    </div>
+
+    <!-- Saved listings -->
+    <div id="saved-listings-wrap" class="hidden flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Saved Listings</p>
+        <button type="button" id="clear-saved-btn" class="text-xs text-gray-400 hover:text-red-500 transition-colors">Clear all</button>
+      </div>
+      <div id="saved-listings-list" class="flex flex-col gap-1.5"></div>
+      <div class="border-t border-gray-100 pt-1"></div>
+    </div>
+
+    <form id="listing-form" class="flex flex-col gap-4">
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Address</label>
+        <input id="f-address" type="text" placeholder="Rothschild Blvd 22, Tel Aviv"
+          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Asking rent (₪/mo)</label>
+          <input id="f-rent" type="number" placeholder="7500"
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Lowest Price (₪) <span class="text-gray-400 font-normal">🔒</span></label>
+          <input id="f-price-floor" type="number" placeholder="6500"
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        </div>
+      </div>
+      <p class="text-xs text-gray-400 -mt-2">Lowest price is private — tenants in [lowest price, asking] get partial score; below lowest price is a dealbreaker.</p>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Description (optional)</label>
+        <textarea id="f-desc" rows="2" placeholder="3BR, renovated, quiet street…"
+          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
+      </div>
+
+      <div class="border-t border-gray-100 pt-4">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Screening Criteria</p>
+        <div class="flex flex-col gap-3">
+          <label class="flex items-center gap-3 text-sm text-gray-700 cursor-pointer">
+            <input id="f-employment" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400" />
+            Require employment (employed / self-employed)
+          </label>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Pets policy</label>
+              <select id="f-pets" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                <option value="true">Pets allowed</option>
+                <option value="false">No pets</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Max occupants</label>
+              <input id="f-max-occ" type="number" placeholder="any"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">Must move in by</label>
+            <input id="f-movein" type="date"
+              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+          </div>
+          <label class="flex items-center gap-3 text-sm text-gray-700 cursor-pointer -mt-1">
+            <input id="f-movein-strict" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400" />
+            Strict move-in deadline (dealbreaker if missed)
+          </label>
+          <!-- Age preference -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Min age <span class="text-gray-400 font-normal">🔒</span></label>
+              <input id="f-min-age" type="number" placeholder="none"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Max age <span class="text-gray-400 font-normal">🔒</span></label>
+              <input id="f-max-age" type="number" placeholder="none"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            </div>
+          </div>
+          <label class="flex items-center gap-3 text-sm text-gray-700 cursor-pointer -mt-1">
+            <input id="f-age-public" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400" />
+            Advertise age preference publicly
+          </label>
+          <!-- Gender preference -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Preferred gender <span class="text-gray-400 font-normal">🔒</span></label>
+              <select id="f-pref-gender" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                <option value="">No preference</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <label class="flex items-center gap-3 text-sm text-gray-700 cursor-pointer -mt-1">
+            <input id="f-gender-public" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400" />
+            Advertise gender preference publicly
+          </label>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button type="button" id="save-listing-btn"
+          class="flex-shrink-0 border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 text-gray-600 hover:text-indigo-700 font-medium rounded-xl py-2.5 px-3 text-sm transition-colors flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+          </svg>
+          Save
+        </button>
+        <button type="submit" id="listing-btn"
+          class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+          Go Live
+        </button>
+      </div>
+    </form>
+
+    <div id="listing-success" class="hidden rounded-xl bg-green-50 border border-green-200 p-3 text-sm text-green-800">
+      <span class="font-semibold">Listing live!</span>
+      <span id="listing-success-id" class="text-green-600 ml-1"></span>
+    </div>
+    <div id="listing-error" class="hidden rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700"></div>
+  </section>
+
+  <!-- ── COL 2: Incoming Offers ─────────────────────────────────────────── -->
+  <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col gap-4 step-inactive" id="col-offers">
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">2</span>
+          <h2 class="text-base font-semibold text-gray-900">Incoming Offers</h2>
+        </div>
+        <p class="text-xs text-gray-500">Submit a tenant message. The pipeline will extract and score it.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="offer-count-badge" class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded-full">0 offers</span>
+      </div>
+    </div>
+
+    <!-- Offer submission form -->
+    <form id="offer-form" class="flex flex-col gap-3">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Channel</label>
+          <select id="f-channel" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            <option value="whatsapp">WhatsApp</option>
+            <option value="facebook">Facebook</option>
+            <option value="yad2">Yad2</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">Sender</label>
+          <input id="f-sender" type="text" placeholder="+972541234567"
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">Message</label>
+        <textarea id="f-text" rows="3" placeholder="היי, מעוניין בדירה. תקציב 7000 ₪, נכנס מיידי. עובד בהייטק, ללא חיות."
+          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
+      </div>
+      <button type="submit" id="offer-btn"
+        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+        Submit &amp; Run Pipeline
+      </button>
+    </form>
+
+    <!-- Fixture loader -->
+    <div class="border-t border-gray-100 pt-3">
+      <p class="text-xs text-gray-400 mb-2 font-medium">Or load from fixtures</p>
+      <div class="flex gap-2 flex-wrap" id="fixture-btns"></div>
+    </div>
+
+    <!-- Offer feed -->
+    <div class="border-t border-gray-100 pt-3 flex-1">
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recent</p>
+      <div id="offer-feed" class="flex flex-col gap-2 max-h-64 overflow-y-auto thin-scroll pr-1"></div>
+    </div>
+  </section>
+
+  <!-- ── COL 3: Ranked Tenants ──────────────────────────────────────────── -->
+  <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col gap-4 step-inactive" id="col-results">
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">3</span>
+          <h2 class="text-base font-semibold text-gray-900">Ranked Tenants</h2>
+        </div>
+        <p class="text-xs text-gray-500">Candidates sorted by compatibility score.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="sort-btn" title="Toggle sort order" class="text-xs text-gray-500 hover:text-indigo-600 font-medium flex items-center gap-1 border border-gray-200 rounded-lg px-2 py-1 hover:border-indigo-300 transition-colors">
+          <svg id="sort-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M3 4h13M3 8h9M3 12h5m8 4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+          <span id="sort-label">High→Low</span>
+        </button>
+        <button id="refresh-btn" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0114.93-3.36M20 14a8 8 0 01-14.93 3.36"/>
+          </svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <div id="results-list" class="flex flex-col gap-3 max-h-[calc(100vh-220px)] overflow-y-auto thin-scroll pr-1"></div>
+    <div id="results-empty" class="flex flex-col items-center justify-center py-12 text-gray-400">
+      <svg class="w-10 h-10 mb-2 opacity-40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      <p class="text-sm font-medium">No results yet</p>
+      <p class="text-xs mt-0.5">Submit offers to see ranked tenants</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── TENANT DETAIL MODAL ────────────────────────────────────────────────── -->
+<div id="modal-backdrop" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
+
+    <!-- Modal header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <h3 class="font-semibold text-gray-900 text-base" id="modal-title">Tenant Profile</h3>
+        <span id="modal-score-badge" class="text-sm font-bold px-2.5 py-0.5 rounded-full"></span>
+      </div>
+      <button id="modal-close" class="text-gray-400 hover:text-gray-700 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex border-b border-gray-100 px-6 flex-shrink-0" id="modal-tabs">
+      <button class="tab-btn py-3 px-4 text-sm font-medium transition-colors" data-tab="profile">Profile</button>
+      <button class="tab-btn py-3 px-4 text-sm font-medium transition-colors" data-tab="breakdown">Breakdown</button>
+    </div>
+
+    <!-- Tab panels -->
+    <div class="overflow-y-auto thin-scroll flex-1 px-6 py-5">
+      <div id="tab-profile" class="tab-panel flex flex-col gap-5"></div>
+      <div id="tab-breakdown" class="tab-panel hidden flex flex-col gap-3"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────
+const state = {
+  listingLive: false,
+  listingId: null,
+  offers: [],        // [{offer_id, channel, sender, text, status, error}]
+  results: [],       // from /pipeline/results
+  sortAsc: false,    // false = high→low (default)
+};
+
+// ── Fixtures (subset, loaded lazily) ─────────────────────────────────────
+const FIXTURES = [
+  { label: "HE: Budget + pet",    channel: "whatsapp", sender: "+972541000001", text: "היי, ראיתי את המודעה. תקציב שלי עד 6500 ₪, יכול להיכנס מיידי. עובד בהייטק. יש לי כלב קטן." },
+  { label: "EN: 2 friends",       channel: "facebook", sender: "fb_user_001",   text: "Hi! Me and 2 friends looking for a place. Budget ~10500 total. Move in September 1st 2026. All employed, no pets." },
+  { label: "HE: Student 2 ppl",   channel: "yad2",     sender: "yad2_002",      text: "שלום, אני ועוד שותף אחד מחפשים דירה. תקציב משותף 9000 ₪. שנינו עובדים. ללא חיות מחמד." },
+  { label: "EN: Not applying",    channel: "whatsapp", sender: "+972542000099", text: "Hi can u send more pics? Also whats the price again" },
+  { label: "EN: Pets + freelance",channel: "facebook", sender: "fb_user_003",   text: "Looking for a place for me, my partner, and our 2 cats. Budget 8500 NIS. Freelancer + employed. Flexible on dates." },
+  { label: "HE: Self-employed",   channel: "whatsapp", sender: "+972543000002", text: "מעוניין! תקציב 5800 עד 6200 ₪. עצמאי. ללא חיות. גמיש בתאריכים." },
+  { label: "EN: Engineer single", channel: "yad2",     sender: "yad2_005",      text: "Interested. Budget 6800. Single occupant, employed software engineer. No pets. Can move in July." },
+  { label: "EN: 3 students",      channel: "facebook", sender: "fb_user_009",   text: "Hi, is this place still available? We are 3 students looking for a place. Combined budget 10500. Flexible on move-in." },
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const qr = sel => document.querySelector(sel);
+
+function channelIcon(ch) {
+  const icons = {
+    whatsapp: `<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.106.549 4.09 1.51 5.814L.057 23.175a.75.75 0 00.918.919l5.42-1.456A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.72 9.72 0 01-4.959-1.358l-.356-.212-3.683.99.995-3.623-.232-.373A9.72 9.72 0 012.25 12C2.25 6.616 6.616 2.25 12 2.25S21.75 6.616 21.75 12 17.384 21.75 12 21.75z"/></svg>`,
+    facebook: `<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073c0 6.027 4.388 11.024 10.125 11.927v-8.437H7.078v-3.49h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.49h-2.796v8.437C19.612 23.097 24 18.1 24 12.073z"/></svg>`,
+    yad2:     `<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`,
+  };
+  return icons[ch] || '';
+}
+
+function channelColor(ch) {
+  return { whatsapp: 'text-green-600 bg-green-50', facebook: 'text-blue-600 bg-blue-50', yad2: 'text-orange-600 bg-orange-50' }[ch] || 'text-gray-600 bg-gray-50';
+}
+
+function badgeClass(q) {
+  return { Approved: 'badge-approved', Review: 'badge-review', Rejected: 'badge-rejected' }[q] || '';
+}
+
+function ringColor(score) {
+  if (score >= 75) return '#22c55e';
+  if (score >= 50) return '#f59e0b';
+  return '#ef4444';
+}
+
+function scoreRing(score) {
+  const r = 30, circ = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, score));
+  const offset = circ * (1 - pct / 100);
+  const color = ringColor(pct);
+  return `<div class="ring-wrap">
+    <svg width="72" height="72" viewBox="0 0 72 72">
+      <circle class="ring-bg" cx="36" cy="36" r="${r}"/>
+      <circle class="ring-val" cx="36" cy="36" r="${r}"
+        stroke="${color}"
+        stroke-dasharray="${circ.toFixed(1)}"
+        stroke-dashoffset="${offset.toFixed(1)}"/>
+    </svg>
+    <div class="ring-text">${Math.round(pct)}</div>
+  </div>`;
+}
+
+function fieldLabel(k) {
+  const labels = {
+    budget_nis: 'Budget (stated)', move_in_date: 'Move-in',
+    employment_status: 'Employment', has_pets: 'Pets', num_roommates: 'Roommates',
+    age: 'Age', gender: 'Gender',
+    name: 'Name', phone: 'Phone', preferred_language: 'Language',
+  };
+  return labels[k] || k;
+}
+
+function formatVal(k, v) {
+  if (v === null || v === undefined) return '<span class="text-gray-300">—</span>';
+  if (k === 'budget_nis') return `<span class="font-semibold">₪${v.toLocaleString()}</span>`;
+  if (k === 'has_pets') return v ? '🐾 Yes' : 'No';
+  if (k === 'num_roommates') return v === 0 ? 'Alone' : `+${v}`;
+  if (k === 'preferred_language') return v === 'he' ? '🇮🇱 Hebrew' : '🇬🇧 English';
+  return String(v).replace(/_/g, ' ');
+}
+
+async function apiFetch(url, opts = {}) {
+  const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+
+// ── Render helpers ────────────────────────────────────────────────────────
+function renderOfferFeed() {
+  const feed = $('offer-feed');
+  if (state.offers.length === 0) {
+    feed.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">No offers yet</p>';
+    return;
+  }
+  feed.innerHTML = state.offers.slice().reverse().map(o => `
+    <div class="pop-in flex items-start gap-2.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+      <span class="mt-0.5 inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${channelColor(o.channel)}">
+        ${channelIcon(o.channel)} ${o.channel}
+      </span>
+      <div class="flex-1 min-w-0">
+        <p class="text-xs text-gray-500 truncate">${o.sender}</p>
+        <p class="text-sm text-gray-800 line-clamp-2 mt-0.5">${o.text}</p>
+      </div>
+      <div class="flex-shrink-0 mt-0.5">
+        ${o.status === 'running' ? `<span class="spinner"></span>` :
+          o.status === 'error' ? `<span class="text-red-400" title="${o.error}">✕</span>` :
+          `<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>`}
+      </div>
+    </div>`).join('');
+
+  $('offer-count-badge').textContent = `${state.offers.length} offer${state.offers.length !== 1 ? 's' : ''}`;
+}
+
+function sortedResults() {
+  return state.sortAsc
+    ? [...state.results].reverse()
+    : [...state.results];
+}
+
+function removeResult(offerId, event) {
+  event.stopPropagation();
+  state.results = state.results.filter(r => r.offer?.offer_id !== offerId);
+  renderResults();
+}
+
+function renderResults() {
+  const list = $('results-list');
+  const empty = $('results-empty');
+
+  if (state.results.length === 0) {
+    list.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  const ordered = sortedResults();
+  list.innerHTML = ordered.map((r, i) => {
+    const q = r.score?.qualification || 'unknown';
+    const sc = r.score?.score ?? null;
+    const p = r.profile || {};
+    const offer = r.offer || {};
+    const offerId = offer.offer_id || '';
+    const ts = r.received_at ? new Date(r.received_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+    return `
+    <div class="rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-sm transition-all p-4 flex gap-4 group">
+      <div class="flex flex-col items-center gap-1.5 cursor-pointer" onclick="openModal('${offerId}')">
+        ${sc !== null ? scoreRing(sc) : `<div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">N/A</div>`}
+        <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${badgeClass(q)}">${q}</span>
+      </div>
+      <div class="flex-1 min-w-0 cursor-pointer" onclick="openModal('${offerId}')">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="font-semibold text-gray-900 text-sm">${p.name || offer.sender || 'Anonymous'}</span>
+          <span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${channelColor(offer.channel)}">
+            ${channelIcon(offer.channel)} ${offer.channel || ''}
+          </span>
+          ${ts ? `<span class="text-xs text-gray-400 ml-auto">${ts}</span>` : ''}
+        </div>
+        <p class="text-xs text-gray-500 line-clamp-1 mb-2">${offer.text || ''}</p>
+        <div class="flex flex-wrap gap-2">
+          ${p.budget_nis != null ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">₪${p.budget_nis.toLocaleString()}</span>` : ''}
+          ${p.move_in_date != null ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">${p.move_in_date}</span>` : ''}
+          ${p.employment_status != null ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">${p.employment_status.replace(/_/g,' ')}</span>` : ''}
+          ${p.has_pets === true ? `<span class="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full">🐾 pets</span>` : ''}
+          ${p.has_pets === false ? `<span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">no pets</span>` : ''}
+          ${p.num_roommates != null ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">${p.num_roommates === 0 ? 'alone' : `+${p.num_roommates} roommates`}</span>` : ''}
+          ${p.age != null ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">age ${p.age}</span>` : ''}
+          ${p.gender != null ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">${p.gender}</span>` : ''}
+        </div>
+        ${r.error ? `<p class="text-xs text-red-500 mt-1">⚠ ${r.error}</p>` : ''}
+      </div>
+      <button onclick="removeResult('${offerId}', event)"
+        class="flex-shrink-0 self-start opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 mt-0.5 p-1 rounded"
+        title="Remove">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+        </svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+// ── Modal tab switching ───────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const active = btn.dataset.tab === name;
+    btn.className = 'tab-btn py-3 px-4 text-sm font-medium transition-colors ' +
+      (active ? 'tab-active' : 'tab-inactive');
+  });
+  document.querySelectorAll('.tab-panel').forEach(panel => {
+    panel.classList.toggle('hidden', !panel.id.endsWith(name));
+  });
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ── Modal ─────────────────────────────────────────────────────────────────
+function openModal(offerId) {
+  const r = state.results.find(x => x.offer?.offer_id === offerId);
+  if (!r) return;
+  const p = r.profile || {};
+  const sc = r.score || {};
+  const offer = r.offer || {};
+  const prov = p.provenance || {};
+  const ts = r.received_at ? new Date(r.received_at).toLocaleString() : null;
+
+  // Header
+  $('modal-title').textContent = p.name || offer.sender || 'Tenant Profile';
+  const badge = $('modal-score-badge');
+  if (sc.score != null) {
+    badge.textContent = `${sc.score.toFixed(1)} / 100`;
+    badge.className = `text-sm font-bold px-2.5 py-0.5 rounded-full ${badgeClass(sc.qualification)}`;
+  } else {
+    badge.textContent = '';
+  }
+
+  // ── Tab: Profile ──────────────────────────────────────────────────────
+  const SCREENING = ['budget_nis','move_in_date','employment_status',
+                     'has_pets','num_roommates','age','gender','name','phone','preferred_language'];
+
+  let rawMsg = offer.text || '';
+  for (const [field, provObj] of Object.entries(prov)) {
+    if (provObj?.source_span) {
+      rawMsg = rawMsg.split(provObj.source_span).join(`<mark>${provObj.source_span}</mark>`);
+    }
+  }
+
+  $('tab-profile').innerHTML = `
+    <!-- Score ring + meta -->
+    <div class="flex items-center gap-4">
+      ${sc.score != null ? scoreRing(sc.score) : ''}
+      <div class="flex-1">
+        <p class="text-2xl font-bold text-gray-900">${sc.score != null ? sc.score.toFixed(1) : 'N/A'}<span class="text-sm text-gray-400 font-normal"> / 100</span></p>
+        ${sc.qualification ? `<span class="text-sm font-semibold px-2.5 py-0.5 rounded-full ${badgeClass(sc.qualification)}">${sc.qualification}</span>` : ''}
+      </div>
+      <div class="text-right text-xs text-gray-400">
+        <p>${offer.channel || ''}</p>
+        <p class="truncate max-w-[120px]">${offer.sender || ''}</p>
+        ${ts ? `<p class="mt-0.5">${ts}</p>` : ''}
+      </div>
+    </div>
+
+    <!-- Original message -->
+    <div>
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Original Message</p>
+      <div class="bg-gray-50 rounded-xl px-4 py-3 text-sm text-gray-800 leading-relaxed" dir="auto">${rawMsg}</div>
+    </div>
+
+    <!-- Extracted fields grid -->
+    <div>
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Extracted Fields</p>
+      <div class="grid grid-cols-2 gap-2">
+        ${SCREENING.map(k => `
+          <div class="bg-gray-50 rounded-lg px-3 py-2">
+            <p class="text-xs text-gray-400">${fieldLabel(k)}</p>
+            <p class="text-sm font-medium text-gray-800 mt-0.5">${formatVal(k, p[k])}</p>
+            ${prov[k]?.source_span ? `<p class="text-xs text-indigo-500 mt-0.5 truncate" title="${prov[k].source_span}">↳ "${prov[k].source_span}"</p>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>
+    ${r.error ? `<div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">⚠ ${r.error}</div>` : ''}
+  `;
+
+  // ── Tab: Breakdown ────────────────────────────────────────────────────
+  if (sc.rule_hits && sc.rule_hits.length) {
+    $('tab-breakdown').innerHTML = `
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Per-Dimension Scoring</p>
+      <p class="text-xs text-gray-400 mb-3">Points = compat × √weight. Dealbreaker applies a ×${(0.01).toFixed(2)} penalty to the final cosine score.</p>
+      <div class="flex flex-col gap-2">
+        ${sc.rule_hits.map(h => {
+          const icon = h.passed === true ? '✓' : h.passed === false ? '✗' : '?';
+          const iconCls = h.passed === true ? 'text-green-500 bg-green-50' : h.passed === false ? 'text-red-500 bg-red-50' : 'text-amber-500 bg-amber-50';
+          const isDealbreaker = h.rule === 'dealbreaker';
+          return `
+            <div class="flex items-start gap-3 rounded-xl border ${isDealbreaker ? 'border-red-200 bg-red-50' : 'border-gray-100 bg-gray-50'} px-3 py-2.5">
+              <span class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold mt-0.5 ${iconCls}">${icon}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-0.5">
+                  <span class="text-xs font-semibold text-gray-700 capitalize">${h.rule.replace('_',' ')}</span>
+                  <span class="ml-auto text-xs font-mono text-gray-500 flex-shrink-0">${h.points_earned}/${h.points_possible}</span>
+                </div>
+                <p class="text-xs text-gray-600 leading-snug">${h.reason}</p>
+                ${h.points_possible > 0 ? `
+                  <div class="mt-1.5 bg-gray-200 rounded-full h-1.5">
+                    <div class="h-1.5 rounded-full ${h.passed === true ? 'bg-green-400' : h.passed === false ? 'bg-red-400' : 'bg-amber-400'}"
+                         style="width:${Math.round(h.points_earned/h.points_possible*100)}%"></div>
+                  </div>` : ''}
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+      <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+        <span class="text-xs text-gray-500">Final score</span>
+        <span class="text-lg font-bold text-gray-900">${sc.score != null ? sc.score.toFixed(1) : '—'} <span class="text-sm text-gray-400 font-normal">/ 100</span></span>
+      </div>
+    `;
+  } else {
+    $('tab-breakdown').innerHTML = `<p class="text-sm text-gray-400 text-center py-8">No breakdown available.</p>`;
+  }
+
+  switchTab('profile');
+  $('modal-backdrop').classList.remove('hidden');
+  $('modal-backdrop').classList.add('flex');
+}
+
+$('modal-close').addEventListener('click', closeModal);
+$('modal-backdrop').addEventListener('click', e => { if (e.target === $('modal-backdrop')) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+function closeModal() {
+  $('modal-backdrop').classList.add('hidden');
+  $('modal-backdrop').classList.remove('flex');
+}
+
+// ── Activate columns ──────────────────────────────────────────────────────
+function activateOffers() {
+  $('col-offers').classList.remove('step-inactive');
+  $('col-results').classList.remove('step-inactive');
+}
+
+function showListingBadge(address) {
+  const b = $('listing-badge');
+  b.classList.remove('hidden');
+  b.classList.add('flex');
+  $('listing-badge-text').textContent = address;
+}
+
+// ── Saved listings (localStorage) ────────────────────────────────────────
+const SAVED_KEY = 'rentflow_saved_listings';
+
+function readFormSnapshot() {
+  return {
+    address:     $('f-address').value.trim(),
+    rent:        $('f-rent').value,
+    floor:       $('f-price-floor').value,
+    desc:        $('f-desc').value.trim(),
+    employment:  $('f-employment').checked,
+    pets:        $('f-pets').value,
+    maxOcc:      $('f-max-occ').value,
+    movein:      $('f-movein').value,
+    moveinStrict: $('f-movein-strict').checked,
+    minAge:      $('f-min-age').value,
+    maxAge:      $('f-max-age').value,
+    agePublic:   $('f-age-public').checked,
+    prefGender:  $('f-pref-gender').value,
+    genderPublic:$('f-gender-public').checked,
+  };
+}
+
+function applyFormSnapshot(s) {
+  $('f-address').value       = s.address     || '';
+  $('f-rent').value          = s.rent        || '';
+  $('f-price-floor').value   = s.floor       || '';
+  $('f-desc').value          = s.desc        || '';
+  $('f-employment').checked  = !!s.employment;
+  $('f-pets').value          = s.pets        || 'false';
+  $('f-max-occ').value       = s.maxOcc      || '';
+  $('f-movein').value        = s.movein      || '';
+  $('f-movein-strict').checked = !!s.moveinStrict;
+  $('f-min-age').value       = s.minAge      || '';
+  $('f-max-age').value       = s.maxAge      || '';
+  $('f-age-public').checked  = !!s.agePublic;
+  $('f-pref-gender').value   = s.prefGender  || '';
+  $('f-gender-public').checked = !!s.genderPublic;
+}
+
+function loadSaved() {
+  try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function persistSaved(list) {
+  localStorage.setItem(SAVED_KEY, JSON.stringify(list));
+}
+
+function renderSavedListings() {
+  const list = loadSaved();
+  const wrap = $('saved-listings-wrap');
+  const container = $('saved-listings-list');
+  if (list.length === 0) { wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+  container.innerHTML = list.map((s, i) => {
+    const label = s.address
+      ? `${s.address}${s.rent ? ' · ₪' + parseInt(s.rent).toLocaleString() : ''}`
+      : `Listing ${i + 1}`;
+    return `
+      <div class="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 hover:border-indigo-200 transition-colors">
+        <button type="button" class="flex-1 text-left text-sm text-gray-700 truncate hover:text-indigo-700 transition-colors"
+                onclick="loadSavedListing(${i})">${label}</button>
+        <button type="button" class="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
+                onclick="deleteSavedListing(${i})" title="Delete">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>`;
+  }).join('');
+}
+
+function loadSavedListing(i) {
+  const list = loadSaved();
+  if (!list[i]) return;
+  applyFormSnapshot(list[i]);
+  $('listing-success').classList.add('hidden');
+  $('listing-error').classList.add('hidden');
+}
+
+function deleteSavedListing(i) {
+  const list = loadSaved();
+  list.splice(i, 1);
+  persistSaved(list);
+  renderSavedListings();
+}
+
+$('save-listing-btn').addEventListener('click', () => {
+  const snap = readFormSnapshot();
+  if (!snap.address && !snap.rent) {
+    $('listing-error').textContent = 'Fill in at least an address or rent before saving.';
+    $('listing-error').classList.remove('hidden');
+    return;
+  }
+  $('listing-error').classList.add('hidden');
+  const list = loadSaved();
+  // Overwrite if same address already saved, otherwise append.
+  const existing = snap.address ? list.findIndex(s => s.address === snap.address) : -1;
+  if (existing >= 0) list[existing] = snap; else list.push(snap);
+  persistSaved(list);
+  renderSavedListings();
+  // Brief visual confirmation on the button
+  const btn = $('save-listing-btn');
+  btn.innerHTML = `<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Saved`;
+  setTimeout(() => {
+    btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save`;
+  }, 1500);
+});
+
+$('clear-saved-btn').addEventListener('click', () => {
+  persistSaved([]);
+  renderSavedListings();
+});
+
+// Render on load
+renderSavedListings();
+
+// ── Listing form ──────────────────────────────────────────────────────────
+$('listing-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('listing-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Going live…`;
+
+  const payload = {
+    address: $('f-address').value.trim(),
+    rent_nis: parseInt($('f-rent').value) || 0,
+    description: $('f-desc').value.trim() || null,
+    criteria: {},
+  };
+  if ($('f-price-floor').value) payload.criteria.lowest_price_nis = parseInt($('f-price-floor').value);
+  if ($('f-employment').checked) payload.criteria.employment_required = true;
+  payload.criteria.pets_allowed = $('f-pets').value === 'true';
+  if ($('f-max-occ').value) payload.criteria.max_occupants = parseInt($('f-max-occ').value);
+  if ($('f-movein').value) {
+    payload.criteria.move_in_by = $('f-movein').value;
+    payload.criteria.move_in_strict = $('f-movein-strict').checked;
+  }
+  if ($('f-min-age').value) payload.criteria.min_age = parseInt($('f-min-age').value);
+  if ($('f-max-age').value) payload.criteria.max_age = parseInt($('f-max-age').value);
+  if ($('f-min-age').value || $('f-max-age').value) {
+    payload.criteria.age_pref_public = $('f-age-public').checked;
+  }
+  const prefGender = $('f-pref-gender').value;
+  if (prefGender) {
+    payload.criteria.preferred_gender = prefGender;
+    payload.criteria.gender_pref_public = $('f-gender-public').checked;
+  }
+
+  const { ok, data } = await apiFetch('/listing', { method: 'POST', body: JSON.stringify(payload) });
+
+  if (ok) {
+    state.listingLive = true;
+    state.listingId = data.listing_id;
+    state.offers = [];
+    state.results = [];
+    $('listing-success').classList.remove('hidden');
+    $('listing-success-id').textContent = data.listing_id;
+    $('listing-error').classList.add('hidden');
+    showListingBadge(data.address);
+    activateOffers();
+    renderOfferFeed();
+    renderResults();
+  } else {
+    $('listing-error').classList.remove('hidden');
+    $('listing-error').textContent = data.detail || 'Failed to create listing.';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Go Live`;
+});
+
+// ── Offer form ────────────────────────────────────────────────────────────
+async function submitOffer(channel, sender, text) {
+  const offerId = `${channel}_${Date.now()}`;
+  const entry = { offer_id: offerId, channel, sender, text, status: 'running', error: null };
+  state.offers.push(entry);
+  renderOfferFeed();
+
+  // 1. Ingest
+  const { ok, status, data } = await apiFetch(`/webhook/${channel}`, {
+    method: 'POST',
+    body: JSON.stringify({ offer_id: offerId, sender, text }),
+  });
+
+  if (!ok) {
+    entry.status = 'error';
+    if (status === 409) {
+      entry.error = 'No active listing on server — click "Go Live" again.';
+      state.listingLive = false;
+      $('col-offers').classList.add('step-inactive');
+      $('col-results').classList.add('step-inactive');
+    } else {
+      entry.error = data.detail || 'Ingestion failed';
+    }
+    renderOfferFeed();
+    return;
+  }
+
+  // 2. Run pipeline (extraction + scoring)
+  const { ok: ok2, data: data2 } = await apiFetch('/pipeline/run', {
+    method: 'POST',
+    body: JSON.stringify({ offer_id: offerId }),
+  });
+
+  if (!ok2) {
+    entry.status = 'error';
+    entry.error = data2.detail || data2.error || 'Pipeline failed';
+    renderOfferFeed();
+    return;
+  }
+  if (data2.status === 'error') {
+    entry.status = 'error';
+    entry.error = data2.error || 'Extraction error';
+    renderOfferFeed();
+  } else {
+    entry.status = 'done';
+    renderOfferFeed();
+  }
+
+  await refreshResults();
+}
+
+$('offer-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('offer-btn');
+  btn.disabled = true;
+  const ch = $('f-channel').value;
+  const sender = $('f-sender').value.trim() || `user_${Date.now()}`;
+  const text = $('f-text').value.trim();
+  if (!text) { btn.disabled = false; return; }
+  $('f-text').value = '';
+  await submitOffer(ch, sender, text);
+  btn.disabled = false;
+});
+
+// ── Fixtures ──────────────────────────────────────────────────────────────
+const fbWrap = $('fixture-btns');
+FIXTURES.forEach((fx, i) => {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'text-xs bg-gray-100 hover:bg-indigo-50 hover:text-indigo-700 text-gray-600 px-2.5 py-1 rounded-full transition-colors';
+  btn.textContent = fx.label;
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    await submitOffer(fx.channel, fx.sender, fx.text);
+    btn.disabled = false;
+  });
+  fbWrap.appendChild(btn);
+});
+
+// ── Refresh results ───────────────────────────────────────────────────────
+async function refreshResults() {
+  const { ok, data } = await apiFetch('/pipeline/results');
+  if (ok) {
+    state.results = data;
+    renderResults();
+  }
+}
+
+$('refresh-btn').addEventListener('click', refreshResults);
+
+$('sort-btn').addEventListener('click', () => {
+  state.sortAsc = !state.sortAsc;
+  $('sort-label').textContent = state.sortAsc ? 'Low→High' : 'High→Low';
+  renderResults();
+});
+
+// ── Boot: restore state if server already has a listing ──────────────────
+(async () => {
+  const { ok, data } = await apiFetch('/healthz');
+  if (ok && data.listing_live) {
+    state.listingLive = true;
+    state.listingId = data.listing_id;
+    const lr = await apiFetch('/listing');
+    if (lr.ok) showListingBadge(lr.data.address || data.listing_id);
+    activateOffers();
+    await refreshResults();
+  }
+})();
+</script>
+</body>
+</html>
