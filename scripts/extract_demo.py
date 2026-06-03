@@ -72,8 +72,8 @@ def main() -> None:
 
         try:
             result = engine.extract(offer)
-            profile_json = result.profile.model_dump(mode="json")
-            print(json.dumps(profile_json, ensure_ascii=False, indent=2))
+            group_json = result.group.model_dump(mode="json")
+            print(json.dumps(group_json, ensure_ascii=False, indent=2))
         except ExtractionError as exc:
             print(f"[ERROR] {exc}")
 

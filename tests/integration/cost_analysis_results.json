@@ -1,0 +1,797 @@
+{
+  "generated_at": "2026-06-03T06:56:44.879909+00:00",
+  "models_measured": [
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
+    "gpt-4.1"
+  ],
+  "pricing_date": "2026-06-02",
+  "per_model": {
+    "gpt-4.1-mini": {
+      "fixture_count": 25,
+      "successful_count": 25,
+      "stats": {
+        "prompt_tokens": {
+          "mean": 2567.4,
+          "p50": 2569,
+          "p95": 2581
+        },
+        "completion_tokens": {
+          "mean": 168.76
+        },
+        "cached_tokens": {
+          "mean": 1766.4,
+          "hit_rate_pct": 68.80112175741996
+        },
+        "text_len_chars": {
+          "mean": 109.08
+        }
+      },
+      "cost_per_offer": {
+        "gpt-4.1-mini": {
+          "no_cache": 0.0012956,
+          "with_cache": 0.0007658000000000001
+        },
+        "gpt-4.1-nano": {
+          "no_cache": 0.0003239,
+          "with_cache": 0.00019145000000000002
+        },
+        "gpt-4.1": {
+          "no_cache": 0.006477999999999999,
+          "with_cache": 0.003829
+        }
+      },
+      "per_call_records": [
+        {
+          "offer_id": "cost_000",
+          "text_len_chars": 85,
+          "prompt_tokens": 2570,
+          "completion_tokens": 162,
+          "cached_tokens": 0,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_001",
+          "text_len_chars": 122,
+          "prompt_tokens": 2567,
+          "completion_tokens": 150,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_002",
+          "text_len_chars": 103,
+          "prompt_tokens": 2571,
+          "completion_tokens": 221,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_003",
+          "text_len_chars": 77,
+          "prompt_tokens": 2561,
+          "completion_tokens": 101,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_004",
+          "text_len_chars": 51,
+          "prompt_tokens": 2545,
+          "completion_tokens": 85,
+          "cached_tokens": 0,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_005",
+          "text_len_chars": 133,
+          "prompt_tokens": 2571,
+          "completion_tokens": 207,
+          "cached_tokens": 2432,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_006",
+          "text_len_chars": 62,
+          "prompt_tokens": 2559,
+          "completion_tokens": 148,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_007",
+          "text_len_chars": 116,
+          "prompt_tokens": 2582,
+          "completion_tokens": 160,
+          "cached_tokens": 2432,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_008",
+          "text_len_chars": 134,
+          "prompt_tokens": 2568,
+          "completion_tokens": 151,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_009",
+          "text_len_chars": 145,
+          "prompt_tokens": 2568,
+          "completion_tokens": 245,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_010",
+          "text_len_chars": 103,
+          "prompt_tokens": 2578,
+          "completion_tokens": 222,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_011",
+          "text_len_chars": 163,
+          "prompt_tokens": 2569,
+          "completion_tokens": 144,
+          "cached_tokens": 0,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_012",
+          "text_len_chars": 21,
+          "prompt_tokens": 2540,
+          "completion_tokens": 79,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_013",
+          "text_len_chars": 152,
+          "prompt_tokens": 2570,
+          "completion_tokens": 148,
+          "cached_tokens": 2432,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_014",
+          "text_len_chars": 77,
+          "prompt_tokens": 2566,
+          "completion_tokens": 270,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_015",
+          "text_len_chars": 168,
+          "prompt_tokens": 2575,
+          "completion_tokens": 152,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_016",
+          "text_len_chars": 92,
+          "prompt_tokens": 2569,
+          "completion_tokens": 219,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_017",
+          "text_len_chars": 140,
+          "prompt_tokens": 2567,
+          "completion_tokens": 150,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_018",
+          "text_len_chars": 59,
+          "prompt_tokens": 2560,
+          "completion_tokens": 148,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_019",
+          "text_len_chars": 98,
+          "prompt_tokens": 2574,
+          "completion_tokens": 163,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_020",
+          "text_len_chars": 182,
+          "prompt_tokens": 2581,
+          "completion_tokens": 158,
+          "cached_tokens": 0,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_021",
+          "text_len_chars": 93,
+          "prompt_tokens": 2569,
+          "completion_tokens": 219,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_022",
+          "text_len_chars": 123,
+          "prompt_tokens": 2564,
+          "completion_tokens": 146,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_023",
+          "text_len_chars": 83,
+          "prompt_tokens": 2567,
+          "completion_tokens": 160,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        },
+        {
+          "offer_id": "cost_024",
+          "text_len_chars": 145,
+          "prompt_tokens": 2574,
+          "completion_tokens": 211,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1-mini",
+          "error": null
+        }
+      ]
+    },
+    "gpt-4.1-nano": {
+      "fixture_count": 25,
+      "successful_count": 25,
+      "stats": {
+        "prompt_tokens": {
+          "mean": 2567.4,
+          "p50": 2569,
+          "p95": 2581
+        },
+        "completion_tokens": {
+          "mean": 170.48
+        },
+        "cached_tokens": {
+          "mean": 1612.8,
+          "hit_rate_pct": 62.81841551764431
+        },
+        "text_len_chars": {
+          "mean": 109.08
+        }
+      },
+      "cost_per_offer": {
+        "gpt-4.1-mini": {
+          "no_cache": 0.0012988000000000001,
+          "with_cache": 0.0008152000000000001
+        },
+        "gpt-4.1-nano": {
+          "no_cache": 0.00032470000000000003,
+          "with_cache": 0.00020380000000000002
+        },
+        "gpt-4.1": {
+          "no_cache": 0.006494,
+          "with_cache": 0.004076
+        }
+      },
+      "per_call_records": [
+        {
+          "offer_id": "cost_000",
+          "text_len_chars": 85,
+          "prompt_tokens": 2570,
+          "completion_tokens": 159,
+          "cached_tokens": 0,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_001",
+          "text_len_chars": 122,
+          "prompt_tokens": 2567,
+          "completion_tokens": 152,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_002",
+          "text_len_chars": 103,
+          "prompt_tokens": 2571,
+          "completion_tokens": 238,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_003",
+          "text_len_chars": 77,
+          "prompt_tokens": 2561,
+          "completion_tokens": 102,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_004",
+          "text_len_chars": 51,
+          "prompt_tokens": 2545,
+          "completion_tokens": 87,
+          "cached_tokens": 0,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_005",
+          "text_len_chars": 133,
+          "prompt_tokens": 2571,
+          "completion_tokens": 207,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_006",
+          "text_len_chars": 62,
+          "prompt_tokens": 2559,
+          "completion_tokens": 143,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_007",
+          "text_len_chars": 116,
+          "prompt_tokens": 2582,
+          "completion_tokens": 164,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_008",
+          "text_len_chars": 134,
+          "prompt_tokens": 2568,
+          "completion_tokens": 156,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_009",
+          "text_len_chars": 145,
+          "prompt_tokens": 2568,
+          "completion_tokens": 243,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_010",
+          "text_len_chars": 103,
+          "prompt_tokens": 2578,
+          "completion_tokens": 208,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_011",
+          "text_len_chars": 163,
+          "prompt_tokens": 2569,
+          "completion_tokens": 179,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_012",
+          "text_len_chars": 21,
+          "prompt_tokens": 2540,
+          "completion_tokens": 80,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_013",
+          "text_len_chars": 152,
+          "prompt_tokens": 2570,
+          "completion_tokens": 147,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_014",
+          "text_len_chars": 77,
+          "prompt_tokens": 2566,
+          "completion_tokens": 263,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_015",
+          "text_len_chars": 168,
+          "prompt_tokens": 2575,
+          "completion_tokens": 148,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_016",
+          "text_len_chars": 92,
+          "prompt_tokens": 2569,
+          "completion_tokens": 215,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_017",
+          "text_len_chars": 140,
+          "prompt_tokens": 2567,
+          "completion_tokens": 180,
+          "cached_tokens": 0,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_018",
+          "text_len_chars": 59,
+          "prompt_tokens": 2560,
+          "completion_tokens": 144,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_019",
+          "text_len_chars": 98,
+          "prompt_tokens": 2574,
+          "completion_tokens": 162,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_020",
+          "text_len_chars": 182,
+          "prompt_tokens": 2581,
+          "completion_tokens": 175,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_021",
+          "text_len_chars": 93,
+          "prompt_tokens": 2569,
+          "completion_tokens": 211,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_022",
+          "text_len_chars": 123,
+          "prompt_tokens": 2564,
+          "completion_tokens": 137,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_023",
+          "text_len_chars": 83,
+          "prompt_tokens": 2567,
+          "completion_tokens": 156,
+          "cached_tokens": 0,
+          "model": "gpt-4.1-nano",
+          "error": null
+        },
+        {
+          "offer_id": "cost_024",
+          "text_len_chars": 145,
+          "prompt_tokens": 2574,
+          "completion_tokens": 206,
+          "cached_tokens": 1920,
+          "model": "gpt-4.1-nano",
+          "error": null
+        }
+      ]
+    },
+    "gpt-4.1": {
+      "fixture_count": 25,
+      "successful_count": 25,
+      "stats": {
+        "prompt_tokens": {
+          "mean": 2567.4,
+          "p50": 2569,
+          "p95": 2581
+        },
+        "completion_tokens": {
+          "mean": 169.8
+        },
+        "cached_tokens": {
+          "mean": 1899.52,
+          "hit_rate_pct": 73.98613383189219
+        },
+        "text_len_chars": {
+          "mean": 109.08
+        }
+      },
+      "cost_per_offer": {
+        "gpt-4.1-mini": {
+          "no_cache": 0.0012972,
+          "with_cache": 0.0007275000000000001
+        },
+        "gpt-4.1-nano": {
+          "no_cache": 0.0003243,
+          "with_cache": 0.00018187500000000002
+        },
+        "gpt-4.1": {
+          "no_cache": 0.006486,
+          "with_cache": 0.0036375
+        }
+      },
+      "per_call_records": [
+        {
+          "offer_id": "cost_000",
+          "text_len_chars": 85,
+          "prompt_tokens": 2570,
+          "completion_tokens": 162,
+          "cached_tokens": 0,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_001",
+          "text_len_chars": 122,
+          "prompt_tokens": 2567,
+          "completion_tokens": 155,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_002",
+          "text_len_chars": 103,
+          "prompt_tokens": 2571,
+          "completion_tokens": 223,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_003",
+          "text_len_chars": 77,
+          "prompt_tokens": 2561,
+          "completion_tokens": 89,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_004",
+          "text_len_chars": 51,
+          "prompt_tokens": 2545,
+          "completion_tokens": 85,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_005",
+          "text_len_chars": 133,
+          "prompt_tokens": 2571,
+          "completion_tokens": 212,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_006",
+          "text_len_chars": 62,
+          "prompt_tokens": 2559,
+          "completion_tokens": 150,
+          "cached_tokens": 2432,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_007",
+          "text_len_chars": 116,
+          "prompt_tokens": 2582,
+          "completion_tokens": 166,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_008",
+          "text_len_chars": 134,
+          "prompt_tokens": 2568,
+          "completion_tokens": 155,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_009",
+          "text_len_chars": 145,
+          "prompt_tokens": 2568,
+          "completion_tokens": 243,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_010",
+          "text_len_chars": 103,
+          "prompt_tokens": 2578,
+          "completion_tokens": 222,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_011",
+          "text_len_chars": 163,
+          "prompt_tokens": 2569,
+          "completion_tokens": 148,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_012",
+          "text_len_chars": 21,
+          "prompt_tokens": 2540,
+          "completion_tokens": 79,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_013",
+          "text_len_chars": 152,
+          "prompt_tokens": 2570,
+          "completion_tokens": 152,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_014",
+          "text_len_chars": 77,
+          "prompt_tokens": 2566,
+          "completion_tokens": 276,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_015",
+          "text_len_chars": 168,
+          "prompt_tokens": 2575,
+          "completion_tokens": 157,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_016",
+          "text_len_chars": 92,
+          "prompt_tokens": 2569,
+          "completion_tokens": 224,
+          "cached_tokens": 0,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_017",
+          "text_len_chars": 140,
+          "prompt_tokens": 2567,
+          "completion_tokens": 150,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_018",
+          "text_len_chars": 59,
+          "prompt_tokens": 2560,
+          "completion_tokens": 149,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_019",
+          "text_len_chars": 98,
+          "prompt_tokens": 2574,
+          "completion_tokens": 158,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_020",
+          "text_len_chars": 182,
+          "prompt_tokens": 2581,
+          "completion_tokens": 159,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_021",
+          "text_len_chars": 93,
+          "prompt_tokens": 2569,
+          "completion_tokens": 213,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_022",
+          "text_len_chars": 123,
+          "prompt_tokens": 2564,
+          "completion_tokens": 146,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_023",
+          "text_len_chars": 83,
+          "prompt_tokens": 2567,
+          "completion_tokens": 162,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        },
+        {
+          "offer_id": "cost_024",
+          "text_len_chars": 145,
+          "prompt_tokens": 2574,
+          "completion_tokens": 210,
+          "cached_tokens": 2048,
+          "model": "gpt-4.1",
+          "error": null
+        }
+      ]
+    }
+  }
+}

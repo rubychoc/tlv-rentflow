@@ -222,25 +222,32 @@
 <h2 id="executive-summary">1. Executive Summary</h2>
 <h3 id="problem-statement">Problem Statement</h3>
 <p>Tel Aviv’s rental market is chaotic in a way that resists standard tooling. Landlords post on Yad2, Facebook Marketplace, and WhatsApp simultaneously, and within hours they receive dozens of unstructured messages in a mix of Hebrew, English, and informal slang. A message like <em>“היי, אני ועוד שותפה, שתינו עובדות, נכנס תוך חודש, ללא חיות, בת 27”</em> contains six distinct screening signals — yet a landlord reading it still has to manually compare it against their own criteria (budget floor, pet policy, occupancy limit, preferred move-in date) and decide whether to respond.</p>
-<p>The goal was to build a pipeline that automates this screening end-to-end: ingest raw messages from multiple channels, extract structured tenant profiles using an LLM, score each candidate against the landlord’s criteria, and surface a ranked list with a per-dimension explanation.</p>
+<p>The goal was to build a pipeline that automates this screening end-to-end: ingest raw messages from multiple channels, extract structured tenant profiles using an LLM, score each candidate household against the landlord’s criteria, and surface a ranked list with a per-dimension explanation.</p>
 <h3 id="goals">Goals</h3>
 <ol type="1">
-<li><strong>Robustness</strong>: handle multilingual input (Hebrew/English/slang), missing fields, non-applicant messages, and multi-roommate scenarios correctly.</li>
+<li><strong>Robustness</strong>: handle multilingual input (Hebrew/English/slang), missing fields, non-applicant messages, and multi-applicant households correctly.</li>
 <li><strong>Auditability</strong>: every extracted fact traces back to the exact substring that justified it. A landlord should be able to see <em>why</em> a score was computed, not just what it was.</li>
 <li><strong>Testability</strong>: the non-deterministic part of the system (the LLM) must be fully isolated so that the deterministic parts (scoring, validation, routing) can be tested without API calls.</li>
-<li><strong>Honest uncertainty</strong>: <code>None</code> in a tenant profile means <em>not stated</em> — never a default, never a guess. This three-way distinction (<code>True</code>/<code>False</code>/<code>None</code>) is the central semantic invariant the whole pipeline depends on.</li>
+<li><strong>Honest uncertainty</strong>: <code>None</code> in any profile field means <em>not stated</em> — never a default, never a guess. This three-way distinction (<code>True</code>/<code>False</code>/<code>None</code>, or value/<code>None</code>) is the central semantic invariant the whole pipeline depends on.</li>
 </ol>
 <h3 id="architecture">Architecture</h3>
 <p>The system is organized as four stations connected by Pydantic data contracts:</p>
-<pre><code>RawOffer  →  TenantProfile  →  ScoreResult
-Station 1     Station 2         Station 3
-(Ingestion)   (Extraction)      (Scoring)</code></pre>
-<p><strong>Station 1 — Ingestion</strong> (<code>FastAPI</code>): A <code>POST /webhook/{channel}</code> endpoint accepts raw tenant messages. The channel (<code>whatsapp</code>/<code>facebook</code>/<code>yad2</code>) is authoritative from the URL path, not the body. An <code>InMemoryOfferStore</code> backed by a <code>threading.Lock</code> holds offers for the server’s lifetime. A <code>POST /listing</code> endpoint lets landlords publish their apartment and screening criteria; the webhook rejects all offers until a listing is live (HTTP 409). A <code>POST /pipeline/run</code> endpoint triggers extraction + scoring on demand for any stored offer and caches the result.</p>
-<p><strong>Station 2 — Extraction</strong> (<code>gpt-4.1-mini</code>, structured outputs): Takes a <code>RawOffer.text</code> and returns a validated <code>TenantProfile</code>. Every extracted field is <code>Optional</code> — <code>None</code> always means “not stated.” The LLM is called with <code>response_format: json_schema, strict: True</code> and <code>temperature: 0</code> to eliminate format hallucination and reduce output variance. Provenance tracking maps each extracted value back to the exact source substring.</p>
-<p><strong>Station 3 — Scoring</strong> (<code>pure Python</code>): Computes a 0–100 compatibility score using a dot-product ratio (fraction of maximum possible points earned). Hard constraints (pets forbidden, budget below private floor, strict move-in deadline, occupant limit exceeded) apply a ×0.01 multiplier as a dealbreaker penalty, applied <em>after</em> the vector math so the algebra stays clean. Seven weighted dimensions produce a per-dimension <code>RuleHit</code> breakdown for explainability.</p>
-<p><strong>Station 4 — Evaluation</strong> (designed, not yet built): An offline eval harness meant to run the fixture messages through Station 2 and measure per-field precision/recall against a golden dataset. The fixture set (<code>data/fixtures.jsonl</code>) covers 24 real-world messages specifically chosen to stress-test the edge cases.</p>
+<pre><code>RawOffer  →  TenantGroup  →  ScoreResult
+Station 1     Station 2        Station 3
+(Ingestion)   (Extraction)     (Scoring)</code></pre>
+<p><strong>Station 1 — Ingestion</strong> (<code>FastAPI</code>): A <code>POST /webhook/{channel}</code> endpoint accepts raw tenant messages. The channel (<code>whatsapp</code>/<code>facebook</code>/<code>yad2</code>) is authoritative from the URL path, not the body. A <code>threading.Lock</code>-protected <code>InMemoryOfferStore</code> holds offers for the server’s lifetime. <code>POST /listing</code> lets landlords publish their apartment and screening criteria; the webhook rejects all offers until a listing is live (HTTP 409). <code>POST /pipeline/run</code> triggers extraction + scoring on demand for any stored offer.</p>
+<p><strong>Station 2 — Extraction</strong> (<code>gpt-4.1-mini</code>, structured outputs): Takes a <code>RawOffer.text</code> and returns a validated <code>TenantGroup</code>. Input is hard-capped at 1000 characters before the API call to prevent runaway token costs. The LLM is called with <code>response_format: json_schema, strict: True</code> to eliminate format hallucination. Provenance tracking maps each extracted value back to the exact source substring, at both the household level and per-person level.</p>
+<p><strong>Station 3 — Scoring</strong> (<code>pure Python</code>): Computes a 0–100 compatibility score using a dot-product ratio (fraction of maximum possible points earned). Hard constraints (pets forbidden, budget below private floor, strict move-in deadline, occupant limit exceeded) apply a ×0.01 multiplier as a dealbreaker penalty. Seven weighted dimensions produce a per-dimension <code>RuleHit</code> breakdown. Per-person dimensions (employment, age, gender) are <strong>averaged across all applicants</strong> — a household is assessed by the mean of its members.</p>
+<p><strong>Station 4 — Evaluation</strong> (designed, not yet built): An offline eval harness meant to run fixture messages through Station 2 and measure per-field precision/recall against golden labels. The fixture set (<code>data/fixtures.jsonl</code>) covers 24 real-world messages.</p>
+<h3 id="key-data-model-tenantgroup">Key Data Model: <code>TenantGroup</code></h3>
+<p>The central architectural decision of the project is the <code>TenantGroup</code> / <code>TenantProfile</code> split. A single <code>TenantGroup</code> represents one rental application, and contains:</p>
+<ul>
+<li><strong>Shared / household fields</strong>: <code>budget_nis</code>, <code>move_in_date</code>, <code>has_pets</code>, <code>household_size</code>, <code>preferred_language</code>, <code>provenance</code> — facts that belong to the whole household and need only be extracted once.</li>
+<li><strong><code>applicants: list[TenantProfile]</code></strong> — one entry per person whose individual details are stated in the message. A solo applicant is a group of one; a couple is a group of two; a non-application message produces <code>applicants = []</code>.</li>
+</ul>
+<p>This two-tier structure is what allows the pipeline to handle messages like <em>“Me and my partner, we have 2 cats. I freelance, she’s employed. I’m 31.”</em> correctly — two applicants with different employment statuses, a shared pet, and only one known age.</p>
 <h3 id="outcome">Outcome</h3>
-<p>A working end-to-end pipeline with a FastAPI server, ~50 unit and integration tests, and a landlord UI at <code>GET /</code>. The scoring engine handles a broad range of real-world cases correctly. The main known limitation is that there is no production-grade database (in-memory only), and the eval harness for measuring LLM extraction quality against golden labels has not been built yet.</p>
+<p>A working end-to-end pipeline with a FastAPI server, ~255 unit and integration tests, and a landlord UI at <code>GET /</code>. The scoring engine handles multi-person households, partial information, and non-applicant messages correctly. The main known limitation is that there is no production-grade database (in-memory only), and the eval harness for measuring LLM extraction quality against golden labels has not been built yet.</p>
 <hr />
 <h2 id="prompts-and-development-process">2. Prompts and Development Process</h2>
 <h3 id="initial-problem-framing">Initial Problem Framing</h3>
@@ -250,56 +257,70 @@ Station 1     Station 2         Station 3
 <li>How should <code>has_pets</code> be handled — two-valued or three-valued?</li>
 <li>What counts as a budget? (A tenant writing in implies acceptance of the posted price; only explicit statements like “can do up to 6200” should populate <code>budget_nis</code>.)</li>
 <li>How should roommate-reported-per-person budgets be handled?</li>
+<li>How should a message from multiple people be handled?</li>
 </ul>
-<p>My initial prompt said:</p>
+<p>My initial prompt extracted a flat single-person profile. This worked for solo applicants but produced structurally wrong output for messages like <em>“Me and 2 friends, can do max 3500 per person”</em>.</p>
+<h3 id="prompt-iterations">Prompt Iterations</h3>
+<p><strong>Iteration 1 — Per-person budget multiplication</strong>: The first test of the multi-person case returned <code>budget_nis: 3500</code> — the per-person figure, not the total. I added:</p>
 <blockquote>
-<p>“Extract the following fields from the tenant message. If a field is not mentioned, return null.”</p>
+<p>“If per-person amounts are given, multiply: ‘3500 per person’ × 3 people = 10500.”</p>
 </blockquote>
-<p>This was functionally correct but underdetermined. The first iteration of output on the message <em>“Me and 2 friends, can do max 3500 per person”</em> returned <code>budget_nis: 3500</code> — the per-person figure, not the total. The correct answer is <code>10500</code>.</p>
-<p><strong>Iteration 1</strong>: I added a specific rule to the prompt:</p>
+<p><strong>Iteration 2 — Move-in date anchoring</strong>: <code>move_in_date</code> required the model to know today’s date to resolve relative expressions like “immediately” or “within a month.” I injected <code>Today's date for your calculations is {date}</code> dynamically. Without this, the model fell back to a training-data date.</p>
+<p><strong>Iteration 3 — Hebrew gender inference</strong>: Hebrew encodes gender grammatically — <em>“בן 28”</em> strongly implies male; <em>“2 שותפות”</em> implies a female group. I added:</p>
 <blockquote>
-<p>“Be wary of roommates posting price per person — ‘3500 per person’ with 3 roommates means budget_nis=10500.”</p>
+<p>“Hebrew gendered language is a strong signal: ‘בן 25’ → male, ‘בחורה’ → female, ‘2 שותפות’ → female.”</p>
 </blockquote>
-<p><strong>Iteration 2</strong>: The <code>move_in_date</code> field required the model to know today’s date to resolve relative expressions like “immediately” or “within a month.” Adding <code>Today's date for your calculations is {date}</code> to the prompt (injected at runtime) fixed this. The date is now injected dynamically from the server clock.</p>
-<p><strong>Iteration 3</strong>: Hebrew gender inference was initially missed. Hebrew encodes gender grammatically — <em>“בן 28”</em> strongly implies male; <em>“2 שותפות”</em> implies the group is female. I added explicit guidance:</p>
+<p>But I also had to add a counter-rule immediately after testing:</p>
 <blockquote>
-<p>“Notice that in Hebrew, gender is often implied by gendered language. e.g. ‘בן 25’ strongly implies male, while ‘2 שותפות’ implies female.”</p>
+<p>“In plural statements, the grammatical gender may not reflect all actual genders (‘אנחנו 3 סטודנטים’ means at least one male student and we don’t know the gender of the rest).”</p>
 </blockquote>
-<p>This is linguistically non-trivial and required close reading of Hebrew messages to identify the pattern.</p>
-<p><strong>Iteration 4 — Provenance</strong>: I added provenance tracking after realizing there was no way to audit an extraction result. The requirement was that for every non-null field, the model should return the <em>exact substring</em> that justified the value. This added 10 <code>_prov</code> keys to the schema (one per field). The key design constraint was that OpenAI’s <code>strict: True</code> mode forbids <code>additionalProperties: true</code> anywhere in the schema, which ruled out a clean <code>{field: source_span}</code> dict as the provenance container. The solution was to inline the <code>_prov</code> keys as flat siblings of the main fields in the JSON response, then reshape them on the Python side (in <code>ExtractionEngine.extract()</code>) before passing the dict to Pydantic. This is not elegant, but it satisfies the strict-mode constraint without relaxing it.</p>
-<p><strong>Iteration 5 — Non-application filtering</strong>: Early tests showed the model would try to extract data from messages that clearly weren’t applications (e.g., “How much is the rent?” or “Can you send more photos?”). The rule I added:</p>
+<p><strong>Iteration 4 — Provenance at two levels</strong>: I added provenance tracking — for every non-null field, the model must return the exact substring that justified it. The initial design tried to use a <code>{field: source_span}</code> dict, but OpenAI’s <code>strict: True</code> mode forbids <code>additionalProperties: true</code> anywhere in the schema. The workaround was to inline all <code>_prov</code> keys as flat siblings (<code>budget_nis_prov</code>, <code>move_in_date_prov</code>, etc.) and reshape them in Python before passing to Pydantic. With the <code>TenantGroup</code> model, this had to be done at both levels: group-level fields and per-person fields inside each <code>applicants</code> entry.</p>
+<p><strong>Iteration 5 — The <code>TenantGroup</code> refactor (biggest change)</strong>: The flat single-profile model broke down on multi-person messages in ways that couldn’t be fixed by prompt engineering alone. The fundamental issue was: there’s no clean way to output two people’s employment statuses and ages in a flat JSON object. The solution was to refactor the output schema to have a top-level household object and a <code>applicants</code> array. This required:</p>
+<ul>
+<li>A new <code>TenantGroup</code> Pydantic model with <code>applicants: list[TenantProfile]</code></li>
+<li>A new JSON schema (<code>_TENANT_GROUP_SCHEMA</code>) with a nested <code>_PERSON_SCHEMA</code> for the <code>applicants</code> array items</li>
+<li>Updated extraction engine reshaping logic (now has to reshape prov keys at both levels)</li>
+<li>Updated scoring engine and vector functions (per-person dimensions now average over <code>group.applicants</code>)</li>
+<li>Updated all tests that depended on <code>result.profile</code> to use <code>result.group</code> and <code>result.group.applicants[0]</code></li>
+</ul>
+<p>The prompt was also rewritten from scratch to explain the two-tier structure with four worked examples (solo, couple with split employment, 3-person group, non-applicant).</p>
+<p><strong>Iteration 6 — Non-application filtering</strong>: Messages like “How much is the rent?” should return <code>applicants: []</code> and all-null household fields, not a guessed profile. The rule:</p>
 <blockquote>
-<p>“If the message is not a rental application (e.g. asking about price, requesting photos), return all screening fields as null.”</p>
+<p>“If the message is not a rental application, return all household fields as null and <code>applicants</code> as an empty array <code>[]</code>.”</p>
 </blockquote>
-<p>This is the correct behavior because such messages go through the same code path as applications — the scoring engine handles them by applying an <code>_EMPTY_PROFILE_PENALTY</code> (×0.1) since every scoreable field is <code>None</code>.</p>
+<p>The scoring engine handles these by applying an <code>_EMPTY_GROUP_PENALTY</code> (×0.1) — the empty profile path is detected by checking that all scoreable fields on both the group and all applicants are <code>None</code>.</p>
 <h3 id="key-design-decisions">Key Design Decisions</h3>
-<p><strong>Why <code>temperature=0</code></strong>: LLM non-determinism is the primary source of instability in this pipeline. Setting temperature to 0 doesn’t eliminate it entirely (the API is not guaranteed deterministic), but it drastically reduces variance and makes the extraction behavior closer to a deterministic function that can be evaluated against a golden dataset. Combined with structured outputs and an explicit JSON schema, this is the closest thing to “pinning” LLM behavior without fine-tuning.</p>
-<p><strong>Why dot-product ratio instead of cosine similarity</strong>: The scoring algorithm initially used cosine similarity between the tenant vector and the landlord’s ideal vector. The problem is that cosine similarity measures <em>angle</em>, not <em>magnitude</em> — a tenant who answered all questions perfectly but with low weights would score identically to a tenant who answered all questions perfectly with high weights. The dot-product ratio (<code>dot(p, c) / dot(c, c)</code>) measures what fraction of the maximum achievable score the tenant actually earned. This gives a true [0, 1] range where every unanswered question costs proportionally to its weight.</p>
-<p><strong>Why the <code>OfferStore</code> Protocol boundary</strong>: <code>app.py</code> depends on <code>OfferStore</code> (a <code>Protocol</code>), not <code>InMemoryOfferStore</code> (the concrete class). This means the test suite can swap in a fresh store per test without touching app internals, and a database-backed store could be substituted without modifying the API layer. The production path instantiates <code>InMemoryOfferStore</code> as a module-level default; only the test layer overrides it.</p>
-<p><strong>Why <code>lowest_price_nis</code> lives on <code>ScoringCriteria</code>, not <code>Listing</code></strong>: In Israeli rentals, landlords sometimes accept a lower price than they post. The public asking price (<code>rent_nis</code>) lives on <code>Listing</code> because it’s published externally. The private floor (<code>lowest_price_nis</code>) lives on <code>ScoringCriteria</code> because it’s a landlord preference that should not appear in the public listing. The scoring engine takes both as separate parameters, keeping the public/private boundary explicit in the type system.</p>
+<p><strong>Why <code>TenantGroup</code> instead of a flat profile</strong>: The flat model produced ambiguous output for multi-person applications. Which person’s employment do you put in <code>employment_status</code>? Both? An average? The <code>TenantGroup</code> model makes the structure explicit in the type system: group fields belong to the household, person fields belong to individuals. The scoring engine then averages per-person dimensions across applicants, which is both semantically correct (the landlord cares about the <em>household</em>) and computable without guessing.</p>
+<p><strong>Why dot-product ratio instead of cosine similarity</strong>: The scoring algorithm uses <code>dot(group_vec, criteria_vec) / dot(criteria_vec, criteria_vec)</code> — the fraction of maximum achievable points earned. Cosine similarity measures angle, not magnitude; two households with very different weight profiles but identical angular orientation would receive the same score. The ratio gives a true [0, 1] range where every unanswered or mismatched dimension costs proportionally to its weight.</p>
+<p><strong>Why <code>_UNKNOWN = 0.05</code> (not 0 or 0.5)</strong>: An unknown field means the tenant didn’t state something — that should count mildly against them (the landlord has less information), but not as severely as an explicit mismatch. Setting <code>_UNKNOWN</code> to 0.05 means an unstated field scores about 5% of maximum — it penalizes silence without treating it as a hard miss. The previous design used <code>0.5</code>, which was too generous.</p>
+<p><strong>Why students score <code>0.5</code> on employment (not <code>0.0</code>)</strong>: <code>EmploymentStatus.STUDENT</code> is a softer signal than <code>UNEMPLOYED</code>. A student is likely to have some income (loans, parents, part-time work) and is a common tenant type in Tel Aviv. Scoring them at 0.5 puts them in the “uncertain” band rather than “hard fail,” which matches real landlord behavior better.</p>
+<p><strong>Why <code>lowest_price_nis</code> lives on <code>ScoringCriteria</code>, not <code>Listing</code></strong>: The public asking price (<code>rent_nis</code>) lives on <code>Listing</code> because it’s published externally. The private floor (<code>lowest_price_nis</code>) lives on <code>ScoringCriteria</code> because it’s a landlord preference that should not appear in the public listing. The scoring engine takes both as separate parameters.</p>
+<p><strong>Why input is truncated at 1000 characters</strong>: The longest realistic tenant message is well under 800 characters. The truncation guard (<code>MAX_INPUT_CHARS = 1000</code>) prevents adversarial or accidental large inputs from causing runaway token costs. Anything beyond 1000 characters is truncated and logged before the API call.</p>
 <hr />
 <h2 id="critical-reflection-on-ai-output">3. Critical Reflection on AI Output</h2>
 <h3 id="what-the-ai-got-right">What the AI Got Right</h3>
-<p>The LLM’s extraction quality on most well-formed messages was surprisingly good from the first attempt. Structured outputs with a strict schema meant I never had to write JSON parsing code that handles malformed responses — the model reliably produced schema-conformant output. Null semantics (don’t guess) were respected in the majority of cases after rule 1 was stated clearly.</p>
+<p>The LLM’s extraction quality on clear, unambiguous messages was strong from the start. Structured outputs with a strict schema meant the model never produced malformed JSON. Null semantics (don’t guess) were respected for most fields in most cases. The per-person provenance was surprisingly accurate — the model correctly attributed age claims to the right person in multi-applicant messages.</p>
 <h3 id="where-the-ai-required-active-correction">Where the AI Required Active Correction</h3>
-<p><strong>The per-person budget hallucination</strong>: The model’s initial behavior on <em>“3500 per person with 2 friends”</em> was to return <code>budget_nis: 3500</code>. This is a linguistically plausible reading — “3500 is the stated price” — but semantically wrong. The model had no way to know about Israeli rental convention (tenants report their total capacity, not per-person share) without being told. This is an example of domain knowledge that the prompt engineer must supply.</p>
-<p><strong>Over-eager gender inference</strong>: After adding the Hebrew gender rule, early versions of the prompt caused the model to infer gender too aggressively — returning <code>male</code> for <em>“אני עובד בהייטק”</em> (I work in hi-tech) because “עובד” (the word for “works”) is masculine in form, even though it’s the default grammatical form used by all genders. I had to add “null if ambiguous” to the rule and include a counter-example in the few-shot section. The final prompt uses <em>“clearly stated or strongly implied”</em> as the threshold.</p>
-<p><strong>Provenance hallucination</strong>: The earliest version of provenance tracking had no verification step. I tested it by deliberately providing a message where the model would need to summarize rather than quote directly. The model sometimes returned a paraphrase rather than the exact substring. The engine now checks every provenance span against the original offer text and logs a warning on any mismatch. This is not a hard rejection (the profile is still used), because a warning during extraction is better than a pipeline failure — but it surfaces the hallucination for human review rather than silently accepting it.</p>
-<p><strong>Provenance for null fields</strong>: The model occasionally returned <code>budget_nis_prov: "tenant did not mention"</code> rather than <code>null</code>. This technically doesn’t match the rule (“if a field is null, its <code>_prov</code> key must also be null”) but wouldn’t be caught by schema validation since both are strings. I added a few-shot example showing the correct behavior for a null field, which eliminated this.</p>
+<p><strong>The per-person budget hallucination</strong>: <code>budget_nis: 3500</code> instead of <code>10500</code> for a 3-person group where each pays 3500. This is a domain knowledge gap — Israeli rental convention requires the total, not the per-person figure. The model had no way to know this without an explicit rule.</p>
+<p><strong>Over-eager gender inference in Hebrew plurals</strong>: After adding the Hebrew gender rule, the model began returning <code>male</code> for grammatically masculine plural forms (<code>סטודנטים</code>, <code>עובדים</code>) even when the actual genders of the group members were unknown. Hebrew uses masculine plural as the grammatical default, not as a gender claim. I had to add the counter-rule: <em>“In plural statements, the grammatical gender may not reflect all actual genders.”</em></p>
+<p><strong>Inconsistent <code>applicants</code> count vs. <code>household_size</code></strong>: Early versions of the multi-person prompt sometimes returned 2 applicants when <code>household_size = 3</code>, or 3 applicants for a solo message. The engine now logs a warning on mismatch (<code>household_size != len(applicants)</code>), and the prompt has a hard rule: <em>“Always emit exactly one applicant object per person.”</em> This is still the weakest point of the extraction — the model occasionally produces the wrong count for large groups.</p>
+<p><strong>Provenance hallucination</strong>: The model sometimes returns a paraphrase as the <code>_prov</code> span rather than the exact substring. The engine validates every span against the original offer text and logs a warning on mismatches. This surfaces the hallucination for review but doesn’t reject the profile — a warning during extraction is better than a pipeline failure, and the extracted value may still be correct even if the cited span is slightly off.</p>
+<p><strong>Stale date in the prompt</strong>: The system prompt contains <code>Today's date for your calculations is 2026-06-02</code>. This is a hardcoded string in <code>prompts.py</code>. It works correctly today, but will silently produce wrong <code>move_in_date</code> values for “immediately” and “within a month” after this date passes. There is no test for this, and fixing it requires templating the prompt at call time rather than at module load time.</p>
 <h3 id="the-limits-of-prompt-engineering">The Limits of Prompt Engineering</h3>
-<p>The most important thing I learned is that prompt engineering is not a substitute for evaluation. The prompts I’ve written are tuned against 24 fixtures and a handful of adversarial cases I thought of manually. They almost certainly have failure modes I haven’t found yet. This is why Station 4 (the eval harness) was designed from the start: the only way to know whether a prompt change is an improvement is to run it against a labeled golden dataset and measure precision/recall per field. Without that harness, every prompt change is a guess.</p>
-<p>The current state is: I have prompts that work well on cases I’ve observed, but I cannot claim a precision/recall number without the eval harness.</p>
+<p>The most important lesson: prompt engineering is not a substitute for evaluation. The prompts are tuned against 24 fixtures and a handful of adversarial cases found by inspection. They have failure modes not yet discovered. This is why Station 4 (the eval harness) was designed from the start — the only way to know whether a prompt change is an improvement is to run it against a labeled golden dataset and measure precision/recall per field. Without that harness, every prompt change is a bet.</p>
+<p>The current state: the prompts work well on cases observed, but no precision/recall number can be claimed.</p>
 <h3 id="engineering-judgment-vs.-ai-trust">Engineering Judgment vs. AI Trust</h3>
-<p>Several outputs that were structurally valid were semantically wrong in ways the schema couldn’t catch:</p>
+<p>Several outputs were structurally valid but semantically wrong in ways the schema couldn’t catch:</p>
 <ul>
-<li><p>A message like <em>“כמה עולה הדירה?”</em> (“How much is the rent?”) returned all nulls — correct behavior — but the model sometimes populated <code>preferred_language: "he"</code> because it could infer the language from the message. I made a judgment call to allow this: language detection is reliable even from non-application messages, and it doesn’t affect scoring. But it is technically violating rule 9.</p></li>
-<li><p>The move_in_date for “immediately” should be today’s date. The model returns this correctly <em>given the injected date</em>. But during development, I ran scripts without injecting the date and received <code>move_in_date: "2025-01-01"</code> (some training-data cutoff date). This was caught by inspection during the demo run and fixed by making the date injection mandatory in the system prompt.</p></li>
+<li><p>The model sometimes inferred <code>gender</code> for one applicant in a multi-person message from a context that applied to a different person. The per-person provenance structure helps detect this — if the cited span doesn’t mention the right person, it’s a misattribution.</p></li>
+<li><p><code>move_in_date</code> for “immediately” depends on the injected date. During development, running without <code>.env</code> set correctly caused the model to return a date from 2025. This was caught by inspection during a demo run and fixed by making the date injection a prompt invariant, verified in the prompt content tests.</p></li>
+<li><p>A message saying <em>“my friend has a dog”</em> should not set <code>has_pets = true</code> — it’s the friend’s pet, not the tenant’s. The prompt rule says <em>“return true only if it clearly belongs to the tenant(s) applying”</em>, but this is an ambiguous case that the model doesn’t always resolve correctly. The integration test suite covers the non-tenant-pet case explicitly.</p></li>
 </ul>
-<p>The pattern: <strong>I never trusted a new rule or field addition until I had at least one manually checked test case confirming the expected behavior.</strong> Automated tests verify that the <em>engine</em> correctly passes data to the model and reshapes the response — they cannot verify that the <em>model</em> will produce the right data for a given real-world message.</p>
+<p><strong>The pattern throughout</strong>: I never trusted a new rule or field addition until at least one manually checked test case confirmed the expected behavior. Automated tests verify that the <em>engine</em> correctly passes data to the model and reshapes the response — they cannot verify that the <em>model</em> produces the right data for a given real-world message.</p>
 <hr />
 <h2 id="testing-approach">4. Testing Approach</h2>
 <h3 id="strategy-overview">Strategy Overview</h3>
-<p>The test suite is organized around one principle: <strong>isolate the non-deterministic boundary</strong>. The LLM is the only part of the system that can behave differently on identical inputs. Everything downstream of the LLM — the engine’s response parsing, the scoring math, the API routing — must be deterministic and fully testable without network calls.</p>
+<p>The test suite is organized around one principle: <strong>isolate the non-deterministic boundary</strong>. The LLM is the only part of the system that can behave differently on identical inputs. Everything downstream — engine response parsing, scoring math, API routing — must be deterministic and fully testable without network calls.</p>
 <table>
 <colgroup>
 <col style="width: 25%" />
@@ -319,25 +340,25 @@ Station 1     Station 2         Station 3
 <tr class="odd">
 <td>Data models</td>
 <td>Unit</td>
-<td>Pydantic validation, enum coercion, default semantics</td>
+<td>Pydantic validation, enum coercion, null semantics</td>
 <td><code>test_models.py</code></td>
 </tr>
 <tr class="even">
 <td>Scoring vectors</td>
 <td>Unit</td>
-<td>Per-dimension compat functions, weight zeroing, dealbreaker detection</td>
+<td>Per-dimension compat functions, group averaging, dealbreaker detection</td>
 <td><code>test_vectors.py</code></td>
 </tr>
 <tr class="odd">
 <td>Scoring engine</td>
 <td>Unit</td>
-<td>Score aggregation, qualification thresholds, dealbreaker penalty, explainability hits</td>
+<td>Score aggregation, qualification thresholds, dealbreaker penalty, explainability</td>
 <td><code>test_scoring_engine.py</code></td>
 </tr>
 <tr class="even">
 <td>Extraction engine</td>
 <td>Unit (stub)</td>
-<td>Prompt assembly, response reshaping, provenance, null semantics, schema rejection</td>
+<td>Prompt content, response reshaping, provenance, null semantics, error handling</td>
 <td><code>test_extraction.py</code></td>
 </tr>
 <tr class="odd">
@@ -355,54 +376,78 @@ Station 1     Station 2         Station 3
 <tr class="odd">
 <td>Extraction (live)</td>
 <td>Integration</td>
-<td>Real OpenAI call on one fixture; skipped without API key</td>
+<td>Real OpenAI calls on curated fixtures; skipped without API key</td>
 <td><code>integration/test_extraction_live.py</code></td>
 </tr>
 <tr class="even">
-<td>Ingestion (live)</td>
-<td>Integration</td>
-<td>Full round-trip against a running server</td>
-<td><code>integration/test_ingestion_live.py</code></td>
+<td>Cost analysis</td>
+<td>Integration (live)</td>
+<td>Token usage, cost-per-offer, unit-economics table</td>
+<td><code>integration/test_cost_analysis.py</code></td>
 </tr>
 <tr class="odd">
 <td>Stress</td>
 <td>Manual/script</td>
-<td>Concurrency (500 simultaneous requests), memory unbounded growth</td>
+<td>500 concurrent requests; memory unbounded growth</td>
 <td><code>scripts/stress_test.py</code></td>
 </tr>
 </tbody>
 </table>
 <h3 id="unit-tests-scoring">Unit Tests — Scoring</h3>
-<p>The scoring engine is a pure function: same inputs, same output, no I/O. This makes it ideal for exhaustive parameterized testing. The most important test is <code>test_perfect_profile_scores_100</code> — it provides a profile that satisfies every criterion exactly and asserts the score is 100.0. This test would fail immediately if any vector math regression were introduced. The dealbreaker tests confirm that a ×0.01 penalty pushes a score below the <code>rejected_threshold</code> regardless of how strong the other dimensions are.</p>
-<h3 id="unit-tests-extraction-engine-with-stub">Unit Tests — Extraction Engine with Stub</h3>
-<p>The <code>ExtractionClient</code> is replaced in every unit test with a <code>MagicMock</code> whose <code>extract_raw()</code> returns a pre-built dict. This lets the test suite cover:</p>
+<p>The scoring engine is a pure function: same inputs, same output, no I/O. The most important test is <code>test_perfect_profile_scores_100</code> — it provides a <code>TenantGroup</code> with one applicant who satisfies every criterion exactly and asserts <code>score == 100.0</code>. This test would fail immediately if any vector math regression were introduced.</p>
+<p>The group-aware scoring required new test cases compared to the original flat-profile design:</p>
 <ul>
-<li><strong>Schema reshaping</strong>: flat <code>_prov</code> keys are correctly assembled into <code>TenantProfile.provenance</code>.</li>
-<li><strong>Null preservation</strong>: <code>has_pets: False</code> must survive as <code>False</code>, not collapse to <code>None</code>. (This is a subtle Python identity check — <code>assert profile.has_pets is False</code> fails if the value is <code>None</code>.)</li>
-<li><strong>Provenance hallucination warning</strong>: if the returned span is not a substring of the original text, the engine must log a warning. Tested with <code>caplog</code>.</li>
-<li><strong>Error propagation</strong>: a <code>RuntimeError</code> from the client must surface as a clean <code>ExtractionError</code>, not a Pydantic traceback.</li>
+<li>A group of two where one has a pet triggers the dealbreaker (the veto is group-level — one member’s violation vetoes the household).</li>
+<li>The per-person averaging tests verify that a group where one person is employed and one is a student scores between the individual extremes, not equal to either.</li>
+<li><code>is_empty_group</code> tests both paths: group-level fields all null and applicants all null/empty.</li>
 </ul>
-<h3 id="integration-tests-webhook">Integration Tests — Webhook</h3>
-<p>FastAPI’s <code>TestClient</code> runs the full ASGI application without a real server. Each test fixture creates a fresh <code>InMemoryOfferStore</code> and swaps it into the module-level <code>_store</code> variable, ensuring no shared state between tests. This catches the gating logic (offers rejected without a listing), channel validation (invalid channels return 422), ID auto-generation, and the full CRUD lifecycle.</p>
-<h3 id="stress-tests">Stress Tests</h3>
-<p><code>scripts/stress_test.py</code> runs two intentionally adversarial tests:</p>
+<h3 id="unit-tests-extraction-engine-with-stub">Unit Tests — Extraction Engine with Stub</h3>
+<p>The <code>ExtractionClient</code> is replaced in every unit test with a <code>MagicMock</code> whose <code>extract_raw()</code> returns a pre-built dict. This lets the suite cover:</p>
+<ul>
+<li><strong>Group-level prov reshaping</strong>: flat <code>budget_nis_prov</code> keys assembled into <code>TenantGroup.provenance</code>.</li>
+<li><strong>Per-person prov reshaping</strong>: <code>employment_status_prov</code> inside each applicant dict assembled into <code>TenantProfile.provenance</code>.</li>
+<li><strong>Null preservation</strong>: <code>has_pets: False</code> must survive as <code>False</code>, not collapse to <code>None</code> (<code>assert group.has_pets is False</code>).</li>
+<li><strong>Provenance hallucination warning</strong>: if a returned span is not a substring of the original text, the engine must log a warning (tested with <code>caplog</code>).</li>
+<li><strong>Error propagation</strong>: a <code>RuntimeError</code> from the client surfaces as <code>ExtractionError</code>, not a Pydantic traceback.</li>
+<li><strong><code>applicants</code> count mismatch</strong>: engine logs a warning when <code>household_size != len(applicants)</code>.</li>
+</ul>
+<h3 id="integration-tests-live-extraction">Integration Tests — Live Extraction</h3>
+<p>The live test suite (<code>test_extraction_live.py</code>) hits the real OpenAI API with curated fixtures and asserts exact field values. These tests are marked <code>@pytest.mark.live</code> and excluded from the default <code>pytest</code> run. They cover:</p>
+<ul>
+<li><strong>Unambiguous English and Hebrew</strong>: full field extraction with exact value assertions.</li>
+<li><strong>Multi-applicant scenarios</strong>: the couple with split employment, the 3-student group, the married couple in Hebrew — each asserting <code>household_size</code>, <code>len(applicants)</code>, and per-person field distribution.</li>
+<li><strong>Partial fields</strong>: stated fields are correct; absent fields are <code>None</code> (not guessed).</li>
+<li><strong>Non-applicant</strong>: price-inquiry message produces <code>applicants = []</code> and all-null group fields.</li>
+<li><strong>Provenance validity</strong>: every extracted <code>source_span</code> must be a real substring of the original message.</li>
+</ul>
+<p>The most complex assertions test invariants like <em>“exactly one applicant has <code>age = 27</code>, the other two have <code>age = None</code>”</em> — these cannot be expressed as simple equality checks and require reasoning about the structure of the group.</p>
+<h3 id="cost-analysis-test">Cost Analysis Test</h3>
+<p><code>tests/integration/test_cost_analysis.py</code> runs all 24 fixtures through the real API, captures <code>response.usage</code> (prompt tokens, completion tokens, cached tokens) from each call, and produces:</p>
 <ol type="1">
-<li><strong>Concurrency storm</strong>: 500 simultaneous requests via <code>asyncio</code> / <code>httpx</code>. Goal: ensure no 5xx under parallel load. The threading lock in <code>InMemoryOfferStore</code> means this should be safe — the test confirms it empirically.</li>
-<li><strong>Memory flood</strong>: sends 2000 offers with ~50 KB text payloads each. The expected outcome is that the process eventually runs out of RAM. The test is not a pass/fail assertion — it’s an <em>observability</em> test. It documents exactly how many offers and how many MB can be stored before the OS kills the process, which informs production deployment decisions.</li>
+<li><strong>Sanity assertions</strong>: p95 prompt tokens &lt; 3000, p95 completion tokens &lt; 600, p95 cost-per-offer &lt; $0.01.</li>
+<li><strong>Unit-economics table</strong>: projected monthly cost at Hobby/SMB/Scale volume tiers, with and without prompt caching, for <code>gpt-4.1-mini</code>, <code>gpt-4.1-nano</code>, and <code>gpt-4.1</code>.</li>
+<li><strong>Persistent report</strong>: writes <code>cost_analysis_results.jsonl</code> to the project root so numbers are reproducible.</li>
+</ol>
+<p>Token usage is captured via a <code>TokenUsage</code> dataclass stored on <code>ExtractionClient.last_usage</code> after each successful call. The pricing constants are dated and must be re-verified against <code>platform.openai.com</code> before any production cost estimate.</p>
+<h3 id="stress-tests">Stress Tests</h3>
+<p><code>scripts/stress_test.py</code> runs two adversarial tests:</p>
+<ol type="1">
+<li><strong>Concurrency storm</strong>: 500 simultaneous requests via <code>asyncio</code> / <code>httpx</code>. The threading lock in <code>InMemoryOfferStore</code> is what prevents data corruption; the test confirms empirically that zero 5xx responses occur under peak load.</li>
+<li><strong>Memory flood</strong>: 2000 offers with ~50 KB payloads each. The expected outcome is process death from RAM exhaustion. The test is an <em>observability</em> tool — it measures exactly how many MB can be stored before the OS kills the process, informing production deployment decisions.</li>
 </ol>
 <h3 id="what-was-not-tested-and-why">What Was Not Tested, and Why</h3>
-<p><strong>LLM output quality (precision/recall)</strong>: The extraction engine unit tests verify that the engine correctly handles whatever the LLM returns. They do not verify that the LLM returns the right thing for a given real-world message. This requires a golden dataset eval harness (Station 4), which was not built within this project scope. This is the largest unverified risk: a prompt regression would pass all unit tests and only be caught by manual inspection or an eval run.</p>
-<p><strong>Concurrent extraction</strong>: The pipeline processes one offer at a time on demand (<code>POST /pipeline/run</code>). Multiple simultaneous pipeline runs could theoretically interfere through shared <code>_pipeline_results</code>. This is not guarded by a lock; it relies on Python’s GIL for dict writes. It’s accepted as a known limitation for a single-server prototype.</p>
-<p><strong>The landlord UI</strong> (<code>ui.html</code>): The HTML/JS frontend has no automated tests. It was manually verified during development but any UI regression would not be caught by the test suite.</p>
-<p><strong>Multi-process / multi-worker safety</strong>: The <code>InMemoryOfferStore</code> uses a <code>threading.Lock</code> which protects against thread-level races within one process. Running <code>uvicorn --workers 4</code> would split state across processes and break everything. This is documented but not tested. Accepted risk: the project is a single-server prototype.</p>
-<p><strong>Retry logic in <code>ExtractionClient</code></strong>: The retry loop (exponential backoff on <code>RateLimitError</code> and transient <code>APIError</code>) is not tested. Testing it would require injecting exceptions from a mock that fails the first N calls. The logic is straightforward, but omitting it means a regression (e.g., accidentally using the wrong exception type) would not be caught.</p>
-<p><strong>Edge cases in the scoring math</strong>: Several boundary conditions in the vector functions are not covered. For example, <code>_age_compat</code> with <code>min_age=None</code> and <code>hi=None</code> simultaneously hits a <code>half_range</code> fallback that uses <code>hi</code> as the decay unit — but if <code>hi</code> is also <code>None</code>, the code would fail. This case cannot arise given the weight-zeroing logic in <code>_weights()</code> (age weight is zeroed when both bounds are None), but the relationship is implicit and not tested.</p>
+<p><strong>LLM output quality (precision/recall)</strong>: The extraction engine unit tests verify the engine handles whatever the LLM returns. They do not verify the LLM returns the right thing. This requires Station 4 (the eval harness), not yet built. This is the largest unverified risk: a prompt regression passes all unit tests and is only caught by manual inspection or an eval run.</p>
+<p><strong><code>applicants</code> count correctness at scale</strong>: The integration tests assert correct counts for the curated fixture set. They do not systematically test how often the model produces the wrong count across the full population of possible messages. For a 5-person household described in vague terms, the count can vary between runs.</p>
+<p><strong>Concurrent extraction via <code>POST /pipeline/run</code></strong>: Multiple simultaneous pipeline runs could interfere via the shared <code>_pipeline_results</code> dict. Python’s GIL makes dict writes atomic for single-key updates, but there is no lock. Accepted as a known limitation for a single-server prototype.</p>
+<p><strong>The landlord UI</strong> (<code>ui.html</code>): No automated tests. Manually verified during development but any UI regression would not be caught.</p>
+<p><strong>Multi-process / multi-worker safety</strong>: <code>InMemoryOfferStore</code> uses <code>threading.Lock</code>, which only protects within one process. Running <code>uvicorn --workers 4</code> would partition state across processes. Accepted known limitation — documented, not tested.</p>
+<p><strong>The stale date in the system prompt</strong>: <code>Today's date for your calculations is 2026-06-02</code> is hardcoded in <code>prompts.py</code>. No test asserts that this date matches the current date. It will silently produce wrong relative date calculations after today.</p>
 <h3 id="a-bug-that-tests-caught">A Bug That Tests Caught</h3>
-<p>During development, I changed the dealbreaker penalty from <code>×0.15</code> to <code>×0.01</code> as I refined the scoring model. At that point, the test <code>test_dealbreaker_budget_below_floor</code> asserted <code>result.score &lt; 20.0</code> — a threshold that still passed with either multiplier. A sharper test was added:</p>
+<p>During development, I changed the dealbreaker penalty from <code>×0.15</code> to <code>×0.01</code>. The score-threshold tests still passed because they only asserted <code>score &lt; 20.0</code>. A separate test checking the <code>rule_hits</code> breakdown caught the real issue: after a scoring engine refactor that reordered the <code>_build_hits</code> conditions, dealbreaker profiles were being tagged as <code>empty_profile</code> instead of <code>dealbreaker</code>. The test:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> <span class="bu">any</span>(<span class="st">&quot;DEALBREAKER&quot;</span> <span class="kw">in</span> h.reason <span class="cf">for</span> h <span class="kw">in</span> result.rule_hits)</span></code></pre></div>
-<p>This test is checking the <em>explainability output</em>, not just the score, which means it would catch a regression where the score was low for the wrong reason (e.g., empty profile penalty applied instead of dealbreaker). This caught exactly one such case during development, when I refactored the <code>_build_hits</code> method and accidentally swapped the condition order, causing some dealbreaker profiles to be tagged as <code>empty_profile</code> instead.</p>
+<p>…failed on the refactored version, revealing that the penalty was being applied via the wrong path. The score was low either way, so the score-only assertion would not have caught it.</p>
 <h3 id="a-bug-that-slipped-past-tests">A Bug That Slipped Past Tests</h3>
-<p>The <code>move_in_date</code> injection of today’s date is hardcoded in the system prompt string (in <code>prompts.py</code>). The string reads <code>Today's date for your calculations is 2026-06-02</code>. This works correctly right now. It will silently produce wrong results after any calendar day passes, because the date will be stale. There is no test for this because the prompt is a static module-level constant — the test suite never asserts that the date in the prompt matches the actual current date. A fix would be to template the prompt and inject the date dynamically at call time. This is a known issue accepted as a shortcoming of the current implementation.</p>
+<p>The <code>TenantGroup</code> refactor introduced a subtle scoring regression: the original <code>_employment_compat</code> returned <code>1.0</code> when <code>employment_required = False</code>, regardless of the applicant list. After the refactor, the function averages over <code>group.applicants</code> — but when <code>applicants = []</code> (non-application message), <code>_avg_over_applicants</code> returns <code>no_applicants_default = 1.0</code>, which happens to be the same value. So a non-applicant message still scored 1.0 on employment with no criteria set, and the <code>is_empty_group</code> penalty path handled the overall low score. The bug was masked: the <em>function</em> was returning the right number for the wrong reason. It was caught during a code review of the refactor, not by any test.</p>
 <hr />
 <h2 id="demo">5. Demo</h2>
 <p>The server is run locally:</p>
@@ -410,10 +455,11 @@ Station 1     Station 2         Station 3
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uvicorn</span> rentflow.ingestion.app:app <span class="at">--reload</span> <span class="at">--port</span> 8000</span></code></pre></div>
 <p>The full end-to-end flow can be demonstrated via:</p>
 <ul>
-<li><strong><code>GET /</code></strong> — Landlord UI: post a listing, simulate offers from any channel, trigger extraction + scoring, view the ranked tenant list with per-dimension breakdowns and provenance.</li>
-<li><strong><code>GET /docs</code></strong> — FastAPI Swagger UI: interactive API documentation with all endpoints.</li>
+<li><strong><code>GET /</code></strong> — Landlord UI: post a listing, simulate offers from any channel, trigger extraction + scoring, view the ranked household list with per-dimension breakdowns and provenance.</li>
+<li><strong><code>GET /docs</code></strong> — FastAPI Swagger UI: interactive API documentation.</li>
 <li><strong><code>python scripts/send_offers.py</code></strong> — Sends all 24 fixture messages from <code>data/fixtures.jsonl</code> to the running server.</li>
-<li><strong><code>python scripts/stress_test.py</code></strong> — Runs the concurrency and memory stress tests.</li>
+<li><strong><code>pytest tests/integration/test_cost_analysis.py -m "live and slow" -s -v</code></strong> — Runs the cost analysis against the real API and prints the unit-economics table.</li>
+<li><strong><code>python scripts/stress_test.py</code></strong> — Concurrency and memory stress tests.</li>
 </ul>
 <p>As this is a local prototype with no public hosting, a screen recording of the landlord UI showing a full round-trip (post listing → receive offers → run pipeline → view ranked results) is available on request.</p>
 </body>

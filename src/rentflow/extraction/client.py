@@ -7,73 +7,99 @@ from __future__ import annotations
 import json
 import logging
 import time
+from dataclasses import dataclass
 from typing import Any
 
 from openai import APIError, APITimeoutError, OpenAI, RateLimitError
 
 logger = logging.getLogger(__name__)
 
-# All screening fields that get a paired _prov provenance key.
-_PROVENANCE_FIELDS = [
-    "budget_nis", "move_in_date",
-    "employment_status", "has_pets", "num_roommates",
-    "age", "gender",
-    "name", "phone", "preferred_language",
+
+@dataclass
+class TokenUsage:
+    """Token counts from one successful OpenAI API call."""
+    prompt_tokens: int
+    completion_tokens: int
+    # Subset of prompt_tokens served from the prompt cache (0 if caching not active).
+    cached_tokens: int
+    model: str
+
+    @property
+    def uncached_prompt_tokens(self) -> int:
+        return self.prompt_tokens - self.cached_tokens
+
+    @property
+    def total_tokens(self) -> int:
+        return self.prompt_tokens + self.completion_tokens
+
+# Provenance fields that live at the group (shared) level.
+_GROUP_PROV_FIELDS = [
+    "budget_nis", "move_in_date", "has_pets", "household_size", "preferred_language",
 ]
 
-_TENANT_PROFILE_SCHEMA: dict[str, Any] = {
+# Provenance fields that live on each individual applicant.
+_PERSON_PROV_FIELDS = [
+    "employment_status", "age", "gender", "name", "phone",
+]
+
+# Per-person object schema used as the `items` type in the `applicants` array.
+_PERSON_SCHEMA: dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
     "required": [
-        "budget_nis", "move_in_date",
-        "employment_status", "has_pets", "num_roommates",
-        "age", "gender",
-        "name", "phone", "preferred_language",
-        *[f"{f}_prov" for f in _PROVENANCE_FIELDS],
+        "employment_status", "age", "gender", "name", "phone",
+        *[f"{f}_prov" for f in _PERSON_PROV_FIELDS],
     ],
     "properties": {
-        "budget_nis": {
-            "anyOf": [{"type": "integer"}, {"type": "null"}],
-        },
-        "move_in_date": {
-            "anyOf": [{"type": "string"}, {"type": "null"}],
-        },
         "employment_status": {
             "anyOf": [
                 {"type": "string", "enum": ["employed", "self_employed", "student", "unemployed"]},
                 {"type": "null"},
             ],
         },
-        "has_pets": {
-            "anyOf": [{"type": "boolean"}, {"type": "null"}],
-        },
-        "num_roommates": {
-            "anyOf": [{"type": "integer"}, {"type": "null"}],
-        },
-        "age": {
-            "anyOf": [{"type": "integer"}, {"type": "null"}],
-        },
+        "age": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
         "gender": {
             "anyOf": [
                 {"type": "string", "enum": ["male", "female", "other"]},
                 {"type": "null"},
             ],
         },
-        "name": {
-            "anyOf": [{"type": "string"}, {"type": "null"}],
+        "name": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "phone": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        **{
+            f"{f}_prov": {"anyOf": [{"type": "string"}, {"type": "null"}]}
+            for f in _PERSON_PROV_FIELDS
         },
-        "phone": {
-            "anyOf": [{"type": "string"}, {"type": "null"}],
-        },
+    },
+}
+
+# Top-level group schema.
+_TENANT_GROUP_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "budget_nis", "move_in_date", "has_pets", "household_size", "preferred_language",
+        "applicants",
+        *[f"{f}_prov" for f in _GROUP_PROV_FIELDS],
+    ],
+    "properties": {
+        "budget_nis": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "move_in_date": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "has_pets": {"anyOf": [{"type": "boolean"}, {"type": "null"}]},
+        "household_size": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
         "preferred_language": {
             "anyOf": [
                 {"type": "string", "enum": ["he", "en"]},
                 {"type": "null"},
             ],
         },
+        "applicants": {
+            "type": "array",
+            "items": _PERSON_SCHEMA,
+        },
         **{
             f"{f}_prov": {"anyOf": [{"type": "string"}, {"type": "null"}]}
-            for f in _PROVENANCE_FIELDS
+            for f in _GROUP_PROV_FIELDS
         },
     },
 }
@@ -98,6 +124,8 @@ class ExtractionClient:
         self._timeout = timeout_seconds
         self._max_retries = max_retries
         self._client = OpenAI(api_key=api_key, timeout=timeout_seconds, max_retries=0)
+        # Set after every successful extract_raw() call; None before the first call.
+        self.last_usage: TokenUsage | None = None
 
     def extract_raw(self, system_prompt: str, user_text: str) -> dict[str, Any]:
         """
@@ -122,17 +150,29 @@ class ExtractionClient:
                     response_format={
                         "type": "json_schema",
                         "json_schema": {
-                            "name": "TenantProfile",
+                            "name": "TenantGroup",
                             "strict": True,
-                            "schema": _TENANT_PROFILE_SCHEMA,
+                            "schema": _TENANT_GROUP_SCHEMA,
                         },
                     },
-                    temperature=0,
+                    temperature=0.5,
                 )
 
                 raw_json = response.choices[0].message.content
                 if not raw_json:
                     raise RuntimeError("OpenAI returned an empty response body.")
+
+                usage = response.usage
+                cached = 0
+                if usage and usage.prompt_tokens_details:
+                    cached = usage.prompt_tokens_details.cached_tokens or 0
+                if usage:
+                    self.last_usage = TokenUsage(
+                        prompt_tokens=usage.prompt_tokens,
+                        completion_tokens=usage.completion_tokens,
+                        cached_tokens=cached,
+                        model=self._model,
+                    )
 
                 return json.loads(raw_json)
 

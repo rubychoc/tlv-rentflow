@@ -1,0 +1,2201 @@
+{
+  "generated_at": "2026-06-02T19:58:47.814456+00:00",
+  "models_compared": [
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano"
+  ],
+  "results": {
+    "gpt-4.1": {
+      "cost": {
+        "available": true,
+        "fixtures_measured": 25,
+        "prompt_tokens": {
+          "mean": 2567.4,
+          "p50": 2569,
+          "p95": 2581
+        },
+        "completion_tokens_mean": 167.68,
+        "cached_tokens_mean": 1848.32,
+        "cache_hit_rate_pct": null,
+        "cost_per_offer": {
+          "gpt-4.1-mini": {
+            "no_cache": 0.001294,
+            "with_cache": 0.0007396
+          },
+          "gpt-4.1-nano": {
+            "no_cache": 0.0003235,
+            "with_cache": 0.0001849
+          },
+          "gpt-4.1": {
+            "no_cache": 0.00647,
+            "with_cache": 0.003698
+          }
+        }
+      },
+      "extraction_accuracy": {
+        "available": true,
+        "total": 0,
+        "passed": 0,
+        "failed": 0,
+        "pass_rate": "0/0",
+        "failures": []
+      },
+      "probe_accuracy": {
+        "available": true,
+        "total": 44,
+        "passed": 43,
+        "failed": 1,
+        "pass_rate": "43/44",
+        "by_kind": {
+          "single": {
+            "total": 20,
+            "passed": 19,
+            "failed": 1,
+            "failures": [
+              {
+                "test": "test_landlord_asking_price_not_extracted_as_tenant_budget",
+                "field": "budget_nis",
+                "expected": "(no single correct answer)",
+                "actual": "7500",
+                "distribution": {
+                  "7500": 1
+                }
+              }
+            ]
+          },
+          "correctness": {
+            "total": 17,
+            "passed": 17,
+            "failed": 0,
+            "failures": []
+          },
+          "stability": {
+            "total": 3,
+            "passed": 3,
+            "failed": 0,
+            "failures": []
+          },
+          "observe": {
+            "total": 4,
+            "passed": 4,
+            "failed": 0,
+            "failures": []
+          }
+        },
+        "all_results": [
+          {
+            "test": "test_all_provenance_spans_are_real_substrings",
+            "message": "Hi! Me and my partner are looking. Both employed, no pets. Can move in August. Budget 7000. I'm 29, she's 31.",
+            "field": "provenance spans",
+            "kind": "single",
+            "expected": "all substrings of input",
+            "actual": "OK",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "OK": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_non_applicant_returns_empty_applicants",
+            "message": "מה המחיר? אפשר לראות תמונות?",
+            "field": "applicants + shared fields",
+            "kind": "single",
+            "expected": "[] and all null",
+            "actual": "applicants=[], budget=None",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "applicants=[], budget=None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_result_always_validates_as_tenant_group",
+            "message": "maybe interested, not sure yet",
+            "field": "schema",
+            "kind": "single",
+            "expected": "valid TenantGroup",
+            "actual": "TenantGroup",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "TenantGroup": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_friend_pet_not_attributed_to_applicant",
+            "message": "Hi, interested in the apartment. My friend has a dog but I don't. No pets with me.",
+            "field": "has_pets",
+            "kind": "single",
+            "expected": "False",
+            "actual": "False",
+            "n_runs": 1,
+            "correct_runs": "1/1",
+            "distribution": {
+              "False": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_flexible_move_in_does_not_produce_date",
+            "message": "Interested! Flexible on move-in dates, whenever works for you.",
+            "field": "move_in_date",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_applicant_count_matches_household_size_when_stated",
+            "message": "We are 2 students looking for a place. Both employed part-time. No pets.",
+            "field": "len(applicants)",
+            "kind": "single",
+            "expected": "2",
+            "actual": "2",
+            "n_runs": 1,
+            "correct_runs": "1/1",
+            "distribution": {
+              "2": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_no_budget_stated_stays_null",
+            "message": "Hello, very interested in the apartment. Employed, no pets, can move in September.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_deposit_mention_does_not_populate_budget",
+            "message": "Interested. Single occupant, employed. No pets. Can pay 2 months deposit upfront.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_age_range_produces_null_or_midpoint",
+            "message": "Looking for a place, just me. Employed, no pets. I'm in my mid-20s.",
+            "field": "age",
+            "kind": "single",
+            "expected": "None or 25",
+            "actual": "25",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "25": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_i_am_flexible_produces_no_fields",
+            "message": "Hi! I'm flexible on everything — dates, budget, whatever works for you.",
+            "field": "budget_nis + move_in_date",
+            "kind": "single",
+            "expected": "both None",
+            "actual": "budget=None, move_in=None",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "budget=None, move_in=None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_no_age_mentioned_stays_null",
+            "message": "Employed software engineer, no pets, looking alone, can move August.",
+            "field": "age",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_ben_25_gender_is_consistently_male",
+            "message": "מעוניין, בן 25, עובד. גר לבד, ללא חיות.",
+            "field": "gender",
+            "kind": "correctness",
+            "expected": "Gender.MALE",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "Gender.MALE": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_shuftot_gender_is_consistently_female",
+            "message": "אנחנו 2 שותפות, עובדות. מחפשות דירה מספטמבר. ללא חיות.",
+            "field": "gender",
+            "kind": "correctness",
+            "expected": "Gender.FEMALE",
+            "actual": null,
+            "n_runs": 10,
+            "correct_runs": "10/10",
+            "distribution": {
+              "Gender.FEMALE": 10
+            },
+            "passed": true
+          },
+          {
+            "test": "test_immediate_move_in_date_is_correct",
+            "message": "מעוניינת, נכנסת מיידי. עובדת, ללא חיות. בת 27.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-06-02",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-06-02": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_per_person_budget_multiplied_correctly",
+            "message": "Hi! Me and 2 friends looking for a place. All employed, no pets. Can do max 3500 per person.",
+            "field": "budget_nis",
+            "kind": "correctness",
+            "expected": "10500",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "10500": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_explicit_total_budget_correct",
+            "message": "Looking for an apartment, just me. Budget up to 7000 NIS. Employed, no pets.",
+            "field": "budget_nis",
+            "kind": "correctness",
+            "expected": "7000",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "7000": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_within_a_month_resolves_correctly",
+            "message": "Interested, just me, employed, no pets. Can move in within a month.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-07-02",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-07-02": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_specific_month_name_resolves_correctly",
+            "message": "Hi, me and my partner looking. Both employed, no pets. Can move in from August.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-08-01",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-08-01": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_asap_move_in_is_correct",
+            "message": "יאללה, מעוניין! ASAP להיכנס. עובד, בלי בעלי חיים. בן 26.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-06-02",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-06-02": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_slang_no_pets_is_correct",
+            "message": "Hey!! super interested 🙏 moving asap. no pets obv. work in marketing. no roommates. 26 btw",
+            "field": "has_pets",
+            "kind": "correctness",
+            "expected": "False",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "False": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_contradictory_pets_is_consistent",
+            "message": "No pets, well I actually have a small cat. She's very quiet though.",
+            "field": "has_pets",
+            "kind": "stability",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "True": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_contradictory_employment_is_consistent",
+            "message": "I work as a freelance designer, well between projects right now to be honest.",
+            "field": "employment_status",
+            "kind": "stability",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "EmploymentStatus.SELF_EMPLOYED": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_age_and_budget_kept_separate",
+            "message": "I'm 30 years old, my budget is 3000 NIS, can move in on the 1st of August.",
+            "field": "budget_nis",
+            "kind": "correctness",
+            "expected": "3000",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "3000": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_age_and_budget_kept_separate",
+            "message": "I'm 30 years old, my budget is 3000 NIS, can move in on the 1st of August.",
+            "field": "age",
+            "kind": "correctness",
+            "expected": "30",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "30": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_apartment_number_not_extracted_as_budget",
+            "message": "Interested in apartment 4B. Employed, no pets. Rent around 7500 is fine.",
+            "field": "budget_nis + age",
+            "kind": "single",
+            "expected": "budget in (None,7500), age ≠ 4",
+            "actual": "budget=7500, age=None",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "budget=7500, age=None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_couple_split_employment_stable",
+            "message": "Looking for a place for me and my partner. I freelance, she's employed full time. No pets. Can move in immediately. I'm 31.",
+            "field": "employment_status (each applicant)",
+            "kind": "correctness",
+            "expected": "{self_employed, employed} per run",
+            "actual": null,
+            "n_runs": 10,
+            "correct_runs": "0/10",
+            "distribution": {
+              "EmploymentStatus.SELF_EMPLOYED": 5,
+              "EmploymentStatus.EMPLOYED": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_shared_employment_copied_to_all_members",
+            "message": "We are 3 friends looking for an apartment. All employed, no pets. Can move in September.",
+            "field": "employment_status",
+            "kind": "correctness",
+            "expected": "EmploymentStatus.EMPLOYED",
+            "actual": null,
+            "n_runs": 15,
+            "correct_runs": "15/15",
+            "distribution": {
+              "EmploymentStatus.EMPLOYED": 15
+            },
+            "passed": true
+          },
+          {
+            "test": "test_known_age_on_sender_unknown_on_others",
+            "message": "Hi! Me and my two roommates are looking. I'm 28, we're all employed. No pets. Can move in August.",
+            "field": "age (sender only)",
+            "kind": "correctness",
+            "expected": "28",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "28": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_sister_pet_not_attributed_to_applicant",
+            "message": "Hi, interested in the apartment. My sister has a dog but I don't keep any pets.",
+            "field": "has_pets",
+            "kind": "single",
+            "expected": "False",
+            "actual": "False",
+            "n_runs": 1,
+            "correct_runs": "1/1",
+            "distribution": {
+              "False": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_past_pet_ownership_does_not_set_has_pets",
+            "message": "I used to have a dog but he passed away last year. Currently no pets.",
+            "field": "has_pets",
+            "kind": "single",
+            "expected": "False",
+            "actual": "False",
+            "n_runs": 1,
+            "correct_runs": "1/1",
+            "distribution": {
+              "False": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_considering_getting_a_pet_stays_null_or_unknown",
+            "message": "No pets right now, though I'm thinking about getting a cat in the future.",
+            "field": "has_pets",
+            "kind": "single",
+            "expected": "False or None",
+            "actual": "False",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "False": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_friend_budget_not_attributed_to_applicant",
+            "message": "My friend looked at a similar apartment and paid 6500. I'm looking for a place, employed, no pets, can move in August.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_previous_tenant_age_not_attributed",
+            "message": "I heard the previous tenant was 45 and lived there for years. I'm looking for a place, just me, employed, no pets.",
+            "field": "age",
+            "kind": "single",
+            "expected": "not 45",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_landlord_asking_price_not_extracted_as_tenant_budget",
+            "message": "I saw the listing, the rent is 7500 NIS. I'm interested, employed, no pets.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "7500",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "7500": 1
+            },
+            "passed": false
+          },
+          {
+            "test": "test_end_of_summer_produces_date_or_null",
+            "message": "Interested! Employed, no pets, just me. Want to move in before the end of summer.",
+            "field": "move_in_date",
+            "kind": "observe",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "None": 3,
+              "2026-09-01": 1,
+              "2026-08-31": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_after_the_holidays_produces_date_or_null",
+            "message": "מעוניין, עובד, ללא חיות. כניסה אחרי החגים.",
+            "field": "move_in_date",
+            "kind": "observe",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "2026-10-10": 1,
+              "2026-10-06": 3,
+              "2026-10-01": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_beginning_of_next_month_resolves_correctly",
+            "message": "Hi, just me, employed, no pets. Can move in at the beginning of next month.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-07-01",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-07-01": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_rent_is_a_little_tight_does_not_populate_budget",
+            "message": "The rent is a little tight for me but I think I can manage. Employed, no pets, looking alone.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_can_we_negotiate_does_not_populate_budget",
+            "message": "Very interested! Is there any flexibility on the price? Employed full time, no pets, can move immediately.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_explicit_counteroffer_does_populate_budget",
+            "message": "Interested! Would it be possible to do 6800 instead of 7000? Employed, no pets, moving alone.",
+            "field": "budget_nis",
+            "kind": "correctness",
+            "expected": "6800",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "6800": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_price_per_person_with_unclear_group_size",
+            "message": "Hey, a few of us are looking. We can do around 3000 each. All employed, no pets, flexible move-in.",
+            "field": "budget_nis",
+            "kind": "observe",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "None": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_price_per_person_with_unclear_group_size",
+            "message": "Hey, a few of us are looking. We can do around 3000 each. All employed, no pets, flexible move-in.",
+            "field": "household_size",
+            "kind": "observe",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "None": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_on_parental_leave_is_not_unemployed",
+            "message": "I'm currently on maternity leave but going back to work in two months. Looking for a place alone, no pets, move in August.",
+            "field": "employment_status",
+            "kind": "correctness",
+            "expected": "not unemployed",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "0/5",
+            "distribution": {
+              "EmploymentStatus.EMPLOYED": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_between_jobs_is_consistently_classified",
+            "message": "I'm between jobs right now but have strong savings. Looking for a place alone, no pets.",
+            "field": "employment_status",
+            "kind": "stability",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "EmploymentStatus.UNEMPLOYED": 5
+            },
+            "passed": true
+          }
+        ]
+      }
+    },
+    "gpt-4.1-mini": {
+      "cost": {
+        "available": true,
+        "fixtures_measured": 25,
+        "prompt_tokens": {
+          "mean": 2567.4,
+          "p50": 2569,
+          "p95": 2581
+        },
+        "completion_tokens_mean": 167.68,
+        "cached_tokens_mean": 1848.32,
+        "cache_hit_rate_pct": null,
+        "cost_per_offer": {
+          "gpt-4.1-mini": {
+            "no_cache": 0.001294,
+            "with_cache": 0.0007396
+          },
+          "gpt-4.1-nano": {
+            "no_cache": 0.0003235,
+            "with_cache": 0.0001849
+          },
+          "gpt-4.1": {
+            "no_cache": 0.00647,
+            "with_cache": 0.003698
+          }
+        }
+      },
+      "extraction_accuracy": {
+        "available": true,
+        "total": 0,
+        "passed": 0,
+        "failed": 0,
+        "pass_rate": "0/0",
+        "failures": []
+      },
+      "probe_accuracy": {
+        "available": true,
+        "total": 44,
+        "passed": 42,
+        "failed": 2,
+        "pass_rate": "42/44",
+        "by_kind": {
+          "single": {
+            "total": 20,
+            "passed": 19,
+            "failed": 1,
+            "failures": [
+              {
+                "test": "test_landlord_asking_price_not_extracted_as_tenant_budget",
+                "field": "budget_nis",
+                "expected": "(no single correct answer)",
+                "actual": "7500",
+                "distribution": {
+                  "7500": 1
+                }
+              }
+            ]
+          },
+          "correctness": {
+            "total": 17,
+            "passed": 16,
+            "failed": 1,
+            "failures": [
+              {
+                "test": "test_explicit_counteroffer_does_populate_budget",
+                "field": "budget_nis",
+                "expected": "6800",
+                "actual": [
+                  "None",
+                  "None",
+                  "None",
+                  "None",
+                  "None"
+                ],
+                "distribution": {
+                  "None": 5
+                }
+              }
+            ]
+          },
+          "stability": {
+            "total": 3,
+            "passed": 3,
+            "failed": 0,
+            "failures": []
+          },
+          "observe": {
+            "total": 4,
+            "passed": 4,
+            "failed": 0,
+            "failures": []
+          }
+        },
+        "all_results": [
+          {
+            "test": "test_all_provenance_spans_are_real_substrings",
+            "message": "Hi! Me and my partner are looking. Both employed, no pets. Can move in August. Budget 7000. I'm 29, she's 31.",
+            "field": "provenance spans",
+            "kind": "single",
+            "expected": "all substrings of input",
+            "actual": "OK",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "OK": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_non_applicant_returns_empty_applicants",
+            "message": "מה המחיר? אפשר לראות תמונות?",
+            "field": "applicants + shared fields",
+            "kind": "single",
+            "expected": "[] and all null",
+            "actual": "applicants=[], budget=None",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "applicants=[], budget=None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_result_always_validates_as_tenant_group",
+            "message": "maybe interested, not sure yet",
+            "field": "schema",
+            "kind": "single",
+            "expected": "valid TenantGroup",
+            "actual": "TenantGroup",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "TenantGroup": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_friend_pet_not_attributed_to_applicant",
+            "message": "Hi, interested in the apartment. My friend has a dog but I don't. No pets with me.",
+            "field": "has_pets",
+            "kind": "single",
+            "expected": "False",
+            "actual": "False",
+            "n_runs": 1,
+            "correct_runs": "1/1",
+            "distribution": {
+              "False": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_flexible_move_in_does_not_produce_date",
+            "message": "Interested! Flexible on move-in dates, whenever works for you.",
+            "field": "move_in_date",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_applicant_count_matches_household_size_when_stated",
+            "message": "We are 2 students looking for a place. Both employed part-time. No pets.",
+            "field": "len(applicants)",
+            "kind": "single",
+            "expected": "2",
+            "actual": "2",
+            "n_runs": 1,
+            "correct_runs": "1/1",
+            "distribution": {
+              "2": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_no_budget_stated_stays_null",
+            "message": "Hello, very interested in the apartment. Employed, no pets, can move in September.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_deposit_mention_does_not_populate_budget",
+            "message": "Interested. Single occupant, employed. No pets. Can pay 2 months deposit upfront.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_age_range_produces_null_or_midpoint",
+            "message": "Looking for a place, just me. Employed, no pets. I'm in my mid-20s.",
+            "field": "age",
+            "kind": "single",
+            "expected": "None or 25",
+            "actual": "25",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "25": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_i_am_flexible_produces_no_fields",
+            "message": "Hi! I'm flexible on everything — dates, budget, whatever works for you.",
+            "field": "budget_nis + move_in_date",
+            "kind": "single",
+            "expected": "both None",
+            "actual": "budget=None, move_in=None",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "budget=None, move_in=None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_no_age_mentioned_stays_null",
+            "message": "Employed software engineer, no pets, looking alone, can move August.",
+            "field": "age",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_ben_25_gender_is_consistently_male",
+            "message": "מעוניין, בן 25, עובד. גר לבד, ללא חיות.",
+            "field": "gender",
+            "kind": "correctness",
+            "expected": "Gender.MALE",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "Gender.MALE": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_shuftot_gender_is_consistently_female",
+            "message": "אנחנו 2 שותפות, עובדות. מחפשות דירה מספטמבר. ללא חיות.",
+            "field": "gender",
+            "kind": "correctness",
+            "expected": "Gender.FEMALE",
+            "actual": null,
+            "n_runs": 10,
+            "correct_runs": "10/10",
+            "distribution": {
+              "Gender.FEMALE": 10
+            },
+            "passed": true
+          },
+          {
+            "test": "test_immediate_move_in_date_is_correct",
+            "message": "מעוניינת, נכנסת מיידי. עובדת, ללא חיות. בת 27.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-06-02",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-06-02": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_per_person_budget_multiplied_correctly",
+            "message": "Hi! Me and 2 friends looking for a place. All employed, no pets. Can do max 3500 per person.",
+            "field": "budget_nis",
+            "kind": "correctness",
+            "expected": "10500",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "10500": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_explicit_total_budget_correct",
+            "message": "Looking for an apartment, just me. Budget up to 7000 NIS. Employed, no pets.",
+            "field": "budget_nis",
+            "kind": "correctness",
+            "expected": "7000",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "7000": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_within_a_month_resolves_correctly",
+            "message": "Interested, just me, employed, no pets. Can move in within a month.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-07-02",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-07-02": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_specific_month_name_resolves_correctly",
+            "message": "Hi, me and my partner looking. Both employed, no pets. Can move in from August.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-08-01",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-08-01": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_asap_move_in_is_correct",
+            "message": "יאללה, מעוניין! ASAP להיכנס. עובד, בלי בעלי חיים. בן 26.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-06-02",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-06-02": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_slang_no_pets_is_correct",
+            "message": "Hey!! super interested 🙏 moving asap. no pets obv. work in marketing. no roommates. 26 btw",
+            "field": "has_pets",
+            "kind": "correctness",
+            "expected": "False",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "False": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_contradictory_pets_is_consistent",
+            "message": "No pets, well I actually have a small cat. She's very quiet though.",
+            "field": "has_pets",
+            "kind": "stability",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "True": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_contradictory_employment_is_consistent",
+            "message": "I work as a freelance designer, well between projects right now to be honest.",
+            "field": "employment_status",
+            "kind": "stability",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "EmploymentStatus.SELF_EMPLOYED": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_age_and_budget_kept_separate",
+            "message": "I'm 30 years old, my budget is 3000 NIS, can move in on the 1st of August.",
+            "field": "budget_nis",
+            "kind": "correctness",
+            "expected": "3000",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "3000": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_age_and_budget_kept_separate",
+            "message": "I'm 30 years old, my budget is 3000 NIS, can move in on the 1st of August.",
+            "field": "age",
+            "kind": "correctness",
+            "expected": "30",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "30": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_apartment_number_not_extracted_as_budget",
+            "message": "Interested in apartment 4B. Employed, no pets. Rent around 7500 is fine.",
+            "field": "budget_nis + age",
+            "kind": "single",
+            "expected": "budget in (None,7500), age ≠ 4",
+            "actual": "budget=7500, age=None",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "budget=7500, age=None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_couple_split_employment_stable",
+            "message": "Looking for a place for me and my partner. I freelance, she's employed full time. No pets. Can move in immediately. I'm 31.",
+            "field": "employment_status (each applicant)",
+            "kind": "correctness",
+            "expected": "{self_employed, employed} per run",
+            "actual": null,
+            "n_runs": 10,
+            "correct_runs": "0/10",
+            "distribution": {
+              "EmploymentStatus.SELF_EMPLOYED": 5,
+              "EmploymentStatus.EMPLOYED": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_shared_employment_copied_to_all_members",
+            "message": "We are 3 friends looking for an apartment. All employed, no pets. Can move in September.",
+            "field": "employment_status",
+            "kind": "correctness",
+            "expected": "EmploymentStatus.EMPLOYED",
+            "actual": null,
+            "n_runs": 15,
+            "correct_runs": "15/15",
+            "distribution": {
+              "EmploymentStatus.EMPLOYED": 15
+            },
+            "passed": true
+          },
+          {
+            "test": "test_known_age_on_sender_unknown_on_others",
+            "message": "Hi! Me and my two roommates are looking. I'm 28, we're all employed. No pets. Can move in August.",
+            "field": "age (sender only)",
+            "kind": "correctness",
+            "expected": "28",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "28": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_sister_pet_not_attributed_to_applicant",
+            "message": "Hi, interested in the apartment. My sister has a dog but I don't keep any pets.",
+            "field": "has_pets",
+            "kind": "single",
+            "expected": "False",
+            "actual": "False",
+            "n_runs": 1,
+            "correct_runs": "1/1",
+            "distribution": {
+              "False": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_past_pet_ownership_does_not_set_has_pets",
+            "message": "I used to have a dog but he passed away last year. Currently no pets.",
+            "field": "has_pets",
+            "kind": "single",
+            "expected": "False",
+            "actual": "False",
+            "n_runs": 1,
+            "correct_runs": "1/1",
+            "distribution": {
+              "False": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_considering_getting_a_pet_stays_null_or_unknown",
+            "message": "No pets right now, though I'm thinking about getting a cat in the future.",
+            "field": "has_pets",
+            "kind": "single",
+            "expected": "False or None",
+            "actual": "False",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "False": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_friend_budget_not_attributed_to_applicant",
+            "message": "My friend looked at a similar apartment and paid 6500. I'm looking for a place, employed, no pets, can move in August.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_previous_tenant_age_not_attributed",
+            "message": "I heard the previous tenant was 45 and lived there for years. I'm looking for a place, just me, employed, no pets.",
+            "field": "age",
+            "kind": "single",
+            "expected": "not 45",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_landlord_asking_price_not_extracted_as_tenant_budget",
+            "message": "I saw the listing, the rent is 7500 NIS. I'm interested, employed, no pets.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "7500",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "7500": 1
+            },
+            "passed": false
+          },
+          {
+            "test": "test_end_of_summer_produces_date_or_null",
+            "message": "Interested! Employed, no pets, just me. Want to move in before the end of summer.",
+            "field": "move_in_date",
+            "kind": "observe",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "None": 4,
+              "2026-08-31": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_after_the_holidays_produces_date_or_null",
+            "message": "מעוניין, עובד, ללא חיות. כניסה אחרי החגים.",
+            "field": "move_in_date",
+            "kind": "observe",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "2026-10-07": 1,
+              "None": 3,
+              "2026-10-06": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_beginning_of_next_month_resolves_correctly",
+            "message": "Hi, just me, employed, no pets. Can move in at the beginning of next month.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-07-01",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-07-01": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_rent_is_a_little_tight_does_not_populate_budget",
+            "message": "The rent is a little tight for me but I think I can manage. Employed, no pets, looking alone.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_can_we_negotiate_does_not_populate_budget",
+            "message": "Very interested! Is there any flexibility on the price? Employed full time, no pets, can move immediately.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_explicit_counteroffer_does_populate_budget",
+            "message": "Interested! Would it be possible to do 6800 instead of 7000? Employed, no pets, moving alone.",
+            "field": "budget_nis",
+            "kind": "correctness",
+            "expected": "6800",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "0/5",
+            "distribution": {
+              "None": 5
+            },
+            "passed": false
+          },
+          {
+            "test": "test_price_per_person_with_unclear_group_size",
+            "message": "Hey, a few of us are looking. We can do around 3000 each. All employed, no pets, flexible move-in.",
+            "field": "budget_nis",
+            "kind": "observe",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "9000": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_price_per_person_with_unclear_group_size",
+            "message": "Hey, a few of us are looking. We can do around 3000 each. All employed, no pets, flexible move-in.",
+            "field": "household_size",
+            "kind": "observe",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "3": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_on_parental_leave_is_not_unemployed",
+            "message": "I'm currently on maternity leave but going back to work in two months. Looking for a place alone, no pets, move in August.",
+            "field": "employment_status",
+            "kind": "correctness",
+            "expected": "not unemployed",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "0/5",
+            "distribution": {
+              "None": 4,
+              "EmploymentStatus.EMPLOYED": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_between_jobs_is_consistently_classified",
+            "message": "I'm between jobs right now but have strong savings. Looking for a place alone, no pets.",
+            "field": "employment_status",
+            "kind": "stability",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "EmploymentStatus.UNEMPLOYED": 5
+            },
+            "passed": true
+          }
+        ]
+      }
+    },
+    "gpt-4.1-nano": {
+      "cost": {
+        "available": true,
+        "fixtures_measured": 25,
+        "prompt_tokens": {
+          "mean": 2567.4,
+          "p50": 2569,
+          "p95": 2581
+        },
+        "completion_tokens_mean": 167.68,
+        "cached_tokens_mean": 1848.32,
+        "cache_hit_rate_pct": null,
+        "cost_per_offer": {
+          "gpt-4.1-mini": {
+            "no_cache": 0.001294,
+            "with_cache": 0.0007396
+          },
+          "gpt-4.1-nano": {
+            "no_cache": 0.0003235,
+            "with_cache": 0.0001849
+          },
+          "gpt-4.1": {
+            "no_cache": 0.00647,
+            "with_cache": 0.003698
+          }
+        }
+      },
+      "extraction_accuracy": {
+        "available": true,
+        "total": 0,
+        "passed": 0,
+        "failed": 0,
+        "pass_rate": "0/0",
+        "failures": []
+      },
+      "probe_accuracy": {
+        "available": true,
+        "total": 44,
+        "passed": 37,
+        "failed": 7,
+        "pass_rate": "37/44",
+        "by_kind": {
+          "single": {
+            "total": 20,
+            "passed": 16,
+            "failed": 4,
+            "failures": [
+              {
+                "test": "test_all_provenance_spans_are_real_substrings",
+                "field": "provenance spans",
+                "expected": "all substrings of input",
+                "actual": "[\"group.move_in_date='August 1st'\"]",
+                "distribution": {
+                  "[\"group.move_in_date='August 1st'\"]": 1
+                }
+              },
+              {
+                "test": "test_sister_pet_not_attributed_to_applicant",
+                "field": "has_pets",
+                "expected": "False",
+                "actual": "None",
+                "distribution": {
+                  "None": 1
+                }
+              },
+              {
+                "test": "test_previous_tenant_age_not_attributed",
+                "field": "age",
+                "expected": "not 45",
+                "actual": "45",
+                "distribution": {
+                  "45": 1
+                }
+              },
+              {
+                "test": "test_landlord_asking_price_not_extracted_as_tenant_budget",
+                "field": "budget_nis",
+                "expected": "(no single correct answer)",
+                "actual": "7500",
+                "distribution": {
+                  "7500": 1
+                }
+              }
+            ]
+          },
+          "correctness": {
+            "total": 17,
+            "passed": 15,
+            "failed": 2,
+            "failures": [
+              {
+                "test": "test_ben_25_gender_is_consistently_male",
+                "field": "gender",
+                "expected": "Gender.MALE",
+                "actual": [
+                  "None",
+                  "None",
+                  "None",
+                  "None",
+                  "None"
+                ],
+                "distribution": {
+                  "None": 5
+                }
+              },
+              {
+                "test": "test_shuftot_gender_is_consistently_female",
+                "field": "gender",
+                "expected": "Gender.FEMALE",
+                "actual": [
+                  "None",
+                  "None",
+                  "None",
+                  "None",
+                  "None",
+                  "None",
+                  "None",
+                  "None",
+                  "None",
+                  "None"
+                ],
+                "distribution": {
+                  "None": 10
+                }
+              }
+            ]
+          },
+          "stability": {
+            "total": 3,
+            "passed": 2,
+            "failed": 1,
+            "failures": [
+              {
+                "test": "test_contradictory_employment_is_consistent",
+                "field": "employment_status",
+                "expected": "(no single correct answer)",
+                "actual": [],
+                "distribution": {}
+              }
+            ]
+          },
+          "observe": {
+            "total": 4,
+            "passed": 4,
+            "failed": 0,
+            "failures": []
+          }
+        },
+        "all_results": [
+          {
+            "test": "test_all_provenance_spans_are_real_substrings",
+            "message": "Hi! Me and my partner are looking. Both employed, no pets. Can move in August. Budget 7000. I'm 29, she's 31.",
+            "field": "provenance spans",
+            "kind": "single",
+            "expected": "all substrings of input",
+            "actual": "[\"group.move_in_date='August 1st'\"]",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "[\"group.move_in_date='August 1st'\"]": 1
+            },
+            "passed": false
+          },
+          {
+            "test": "test_non_applicant_returns_empty_applicants",
+            "message": "מה המחיר? אפשר לראות תמונות?",
+            "field": "applicants + shared fields",
+            "kind": "single",
+            "expected": "[] and all null",
+            "actual": "applicants=[], budget=None",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "applicants=[], budget=None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_result_always_validates_as_tenant_group",
+            "message": "maybe interested, not sure yet",
+            "field": "schema",
+            "kind": "single",
+            "expected": "valid TenantGroup",
+            "actual": "TenantGroup",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "TenantGroup": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_friend_pet_not_attributed_to_applicant",
+            "message": "Hi, interested in the apartment. My friend has a dog but I don't. No pets with me.",
+            "field": "has_pets",
+            "kind": "single",
+            "expected": "False",
+            "actual": "False",
+            "n_runs": 1,
+            "correct_runs": "1/1",
+            "distribution": {
+              "False": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_flexible_move_in_does_not_produce_date",
+            "message": "Interested! Flexible on move-in dates, whenever works for you.",
+            "field": "move_in_date",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_applicant_count_matches_household_size_when_stated",
+            "message": "We are 2 students looking for a place. Both employed part-time. No pets.",
+            "field": "len(applicants)",
+            "kind": "single",
+            "expected": "2",
+            "actual": "2",
+            "n_runs": 1,
+            "correct_runs": "1/1",
+            "distribution": {
+              "2": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_no_budget_stated_stays_null",
+            "message": "Hello, very interested in the apartment. Employed, no pets, can move in September.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_deposit_mention_does_not_populate_budget",
+            "message": "Interested. Single occupant, employed. No pets. Can pay 2 months deposit upfront.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_age_range_produces_null_or_midpoint",
+            "message": "Looking for a place, just me. Employed, no pets. I'm in my mid-20s.",
+            "field": "age",
+            "kind": "single",
+            "expected": "None or 25",
+            "actual": "25",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "25": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_i_am_flexible_produces_no_fields",
+            "message": "Hi! I'm flexible on everything — dates, budget, whatever works for you.",
+            "field": "budget_nis + move_in_date",
+            "kind": "single",
+            "expected": "both None",
+            "actual": "budget=None, move_in=None",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "budget=None, move_in=None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_no_age_mentioned_stays_null",
+            "message": "Employed software engineer, no pets, looking alone, can move August.",
+            "field": "age",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_ben_25_gender_is_consistently_male",
+            "message": "מעוניין, בן 25, עובד. גר לבד, ללא חיות.",
+            "field": "gender",
+            "kind": "correctness",
+            "expected": "Gender.MALE",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "0/5",
+            "distribution": {
+              "None": 5
+            },
+            "passed": false
+          },
+          {
+            "test": "test_shuftot_gender_is_consistently_female",
+            "message": "אנחנו 2 שותפות, עובדות. מחפשות דירה מספטמבר. ללא חיות.",
+            "field": "gender",
+            "kind": "correctness",
+            "expected": "Gender.FEMALE",
+            "actual": null,
+            "n_runs": 10,
+            "correct_runs": "0/10",
+            "distribution": {
+              "None": 10
+            },
+            "passed": false
+          },
+          {
+            "test": "test_immediate_move_in_date_is_correct",
+            "message": "מעוניינת, נכנסת מיידי. עובדת, ללא חיות. בת 27.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-06-02",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-06-02": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_per_person_budget_multiplied_correctly",
+            "message": "Hi! Me and 2 friends looking for a place. All employed, no pets. Can do max 3500 per person.",
+            "field": "budget_nis",
+            "kind": "correctness",
+            "expected": "10500",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "10500": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_explicit_total_budget_correct",
+            "message": "Looking for an apartment, just me. Budget up to 7000 NIS. Employed, no pets.",
+            "field": "budget_nis",
+            "kind": "correctness",
+            "expected": "7000",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "7000": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_within_a_month_resolves_correctly",
+            "message": "Interested, just me, employed, no pets. Can move in within a month.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-07-02",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-07-02": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_specific_month_name_resolves_correctly",
+            "message": "Hi, me and my partner looking. Both employed, no pets. Can move in from August.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-08-01",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-08-01": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_asap_move_in_is_correct",
+            "message": "יאללה, מעוניין! ASAP להיכנס. עובד, בלי בעלי חיים. בן 26.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-06-02",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-06-02": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_slang_no_pets_is_correct",
+            "message": "Hey!! super interested 🙏 moving asap. no pets obv. work in marketing. no roommates. 26 btw",
+            "field": "has_pets",
+            "kind": "correctness",
+            "expected": "False",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "False": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_contradictory_pets_is_consistent",
+            "message": "No pets, well I actually have a small cat. She's very quiet though.",
+            "field": "has_pets",
+            "kind": "stability",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "True": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_contradictory_employment_is_consistent",
+            "message": "I work as a freelance designer, well between projects right now to be honest.",
+            "field": "employment_status",
+            "kind": "stability",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 0,
+            "correct_runs": null,
+            "distribution": {},
+            "passed": false
+          },
+          {
+            "test": "test_age_and_budget_kept_separate",
+            "message": "I'm 30 years old, my budget is 3000 NIS, can move in on the 1st of August.",
+            "field": "budget_nis",
+            "kind": "correctness",
+            "expected": "3000",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "3000": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_age_and_budget_kept_separate",
+            "message": "I'm 30 years old, my budget is 3000 NIS, can move in on the 1st of August.",
+            "field": "age",
+            "kind": "correctness",
+            "expected": "30",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "30": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_apartment_number_not_extracted_as_budget",
+            "message": "Interested in apartment 4B. Employed, no pets. Rent around 7500 is fine.",
+            "field": "budget_nis + age",
+            "kind": "single",
+            "expected": "budget in (None,7500), age ≠ 4",
+            "actual": "budget=7500, age=None",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "budget=7500, age=None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_couple_split_employment_stable",
+            "message": "Looking for a place for me and my partner. I freelance, she's employed full time. No pets. Can move in immediately. I'm 31.",
+            "field": "employment_status (each applicant)",
+            "kind": "correctness",
+            "expected": "{self_employed, employed} per run",
+            "actual": null,
+            "n_runs": 10,
+            "correct_runs": "0/10",
+            "distribution": {
+              "EmploymentStatus.SELF_EMPLOYED": 5,
+              "EmploymentStatus.EMPLOYED": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_shared_employment_copied_to_all_members",
+            "message": "We are 3 friends looking for an apartment. All employed, no pets. Can move in September.",
+            "field": "employment_status",
+            "kind": "correctness",
+            "expected": "EmploymentStatus.EMPLOYED",
+            "actual": null,
+            "n_runs": 15,
+            "correct_runs": "15/15",
+            "distribution": {
+              "EmploymentStatus.EMPLOYED": 15
+            },
+            "passed": true
+          },
+          {
+            "test": "test_known_age_on_sender_unknown_on_others",
+            "message": "Hi! Me and my two roommates are looking. I'm 28, we're all employed. No pets. Can move in August.",
+            "field": "age (sender only)",
+            "kind": "correctness",
+            "expected": "28",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "28": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_sister_pet_not_attributed_to_applicant",
+            "message": "Hi, interested in the apartment. My sister has a dog but I don't keep any pets.",
+            "field": "has_pets",
+            "kind": "single",
+            "expected": "False",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "None": 1
+            },
+            "passed": false
+          },
+          {
+            "test": "test_past_pet_ownership_does_not_set_has_pets",
+            "message": "I used to have a dog but he passed away last year. Currently no pets.",
+            "field": "has_pets",
+            "kind": "single",
+            "expected": "False",
+            "actual": "False",
+            "n_runs": 1,
+            "correct_runs": "1/1",
+            "distribution": {
+              "False": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_considering_getting_a_pet_stays_null_or_unknown",
+            "message": "No pets right now, though I'm thinking about getting a cat in the future.",
+            "field": "has_pets",
+            "kind": "single",
+            "expected": "False or None",
+            "actual": "False",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "False": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_friend_budget_not_attributed_to_applicant",
+            "message": "My friend looked at a similar apartment and paid 6500. I'm looking for a place, employed, no pets, can move in August.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_previous_tenant_age_not_attributed",
+            "message": "I heard the previous tenant was 45 and lived there for years. I'm looking for a place, just me, employed, no pets.",
+            "field": "age",
+            "kind": "single",
+            "expected": "not 45",
+            "actual": "45",
+            "n_runs": 1,
+            "correct_runs": "0/1",
+            "distribution": {
+              "45": 1
+            },
+            "passed": false
+          },
+          {
+            "test": "test_landlord_asking_price_not_extracted_as_tenant_budget",
+            "message": "I saw the listing, the rent is 7500 NIS. I'm interested, employed, no pets.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "7500",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "7500": 1
+            },
+            "passed": false
+          },
+          {
+            "test": "test_end_of_summer_produces_date_or_null",
+            "message": "Interested! Employed, no pets, just me. Want to move in before the end of summer.",
+            "field": "move_in_date",
+            "kind": "observe",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "2026-06-30": 3,
+              "2026-06-02": 2
+            },
+            "passed": true
+          },
+          {
+            "test": "test_after_the_holidays_produces_date_or_null",
+            "message": "מעוניין, עובד, ללא חיות. כניסה אחרי החגים.",
+            "field": "move_in_date",
+            "kind": "observe",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "None": 4,
+              "2026-09-30": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_beginning_of_next_month_resolves_correctly",
+            "message": "Hi, just me, employed, no pets. Can move in at the beginning of next month.",
+            "field": "move_in_date",
+            "kind": "correctness",
+            "expected": "2026-07-01",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "2026-07-01": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_rent_is_a_little_tight_does_not_populate_budget",
+            "message": "The rent is a little tight for me but I think I can manage. Employed, no pets, looking alone.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_can_we_negotiate_does_not_populate_budget",
+            "message": "Very interested! Is there any flexibility on the price? Employed full time, no pets, can move immediately.",
+            "field": "budget_nis",
+            "kind": "single",
+            "expected": "(no single correct answer)",
+            "actual": "None",
+            "n_runs": 1,
+            "correct_runs": null,
+            "distribution": {
+              "None": 1
+            },
+            "passed": true
+          },
+          {
+            "test": "test_explicit_counteroffer_does_populate_budget",
+            "message": "Interested! Would it be possible to do 6800 instead of 7000? Employed, no pets, moving alone.",
+            "field": "budget_nis",
+            "kind": "correctness",
+            "expected": "6800",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": "5/5",
+            "distribution": {
+              "6800": 5
+            },
+            "passed": true
+          },
+          {
+            "test": "test_price_per_person_with_unclear_group_size",
+            "message": "Hey, a few of us are looking. We can do around 3000 each. All employed, no pets, flexible move-in.",
+            "field": "budget_nis",
+            "kind": "observe",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "9000": 2,
+              "None": 3
+            },
+            "passed": true
+          },
+          {
+            "test": "test_price_per_person_with_unclear_group_size",
+            "message": "Hey, a few of us are looking. We can do around 3000 each. All employed, no pets, flexible move-in.",
+            "field": "household_size",
+            "kind": "observe",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "3": 2,
+              "None": 3
+            },
+            "passed": true
+          },
+          {
+            "test": "test_on_parental_leave_is_not_unemployed",
+            "message": "I'm currently on maternity leave but going back to work in two months. Looking for a place alone, no pets, move in August.",
+            "field": "employment_status",
+            "kind": "correctness",
+            "expected": "not unemployed",
+            "actual": null,
+            "n_runs": 3,
+            "correct_runs": "0/3",
+            "distribution": {
+              "None": 3
+            },
+            "passed": true
+          },
+          {
+            "test": "test_between_jobs_is_consistently_classified",
+            "message": "I'm between jobs right now but have strong savings. Looking for a place alone, no pets.",
+            "field": "employment_status",
+            "kind": "stability",
+            "expected": "(no single correct answer)",
+            "actual": null,
+            "n_runs": 5,
+            "correct_runs": null,
+            "distribution": {
+              "None": 5
+            },
+            "passed": true
+          }
+        ]
+      }
+    }
+  }
+}

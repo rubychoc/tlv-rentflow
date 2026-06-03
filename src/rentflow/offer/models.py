@@ -50,37 +50,14 @@ class Provenance(BaseModel):
 
 
 class TenantProfile(BaseModel):
-    """Structured tenant data extracted from one RawOffer.
+    """Per-person data for one applicant extracted from a RawOffer.
 
     Every extracted field is Optional — None means 'not stated', never guessed.
+    Shared facts (budget, move-in, pets, household size) live on TenantGroup.
     """
 
-    # --- Screening fields ---
-
-    # budget_nis: what the tenant says they can pay / is willing to negotiate to.
-    # Tenants don't have a formal budget in Israeli rentals; they're agreeing to
-    # the posted price by writing in. This field only populates when the tenant
-    # explicitly states a number (e.g. "can do 6200 max").
-    budget_nis: int | None = Field(
-        default=None,
-        description="Tenant's stated maximum price in NIS. None if not stated.",
-    )
-    move_in_date: date | None = Field(
-        default=None,
-        description=(
-            "Earliest date the tenant can move in. "
-            "Immediate → today, within_month → today+30, flexible/unstated → null."
-        ),
-    )
+    # --- Per-person screening fields ---
     employment_status: EmploymentStatus | None = Field(default=None)
-    has_pets: bool | None = Field(
-        default=None,
-        description="True=has pets, False=explicitly none, None=not mentioned.",
-    )
-    num_roommates: int | None = Field(
-        default=None,
-        description="Number of OTHER occupants. 0=alone. None=not stated.",
-    )
     age: int | None = Field(
         default=None,
         description="Tenant's age in years. None if not stated.",
@@ -93,9 +70,50 @@ class TenantProfile(BaseModel):
     # --- Contact & identity ---
     name: str | None = Field(default=None)
     phone: str | None = Field(default=None)
+
+    # --- Per-person provenance ---
+    provenance: dict[str, Provenance] = Field(default_factory=dict)
+
+
+class TenantGroup(BaseModel):
+    """All applicants from one RawOffer, plus the facts shared by the household.
+
+    A single applicant is represented as a group of one (len(applicants) == 1).
+    Always emit one TenantProfile per occupant — len(applicants) == household_size
+    when household_size is known. Shared facts are copied to every profile;
+    per-person unknown fields are left null.
+    """
+
+    # --- Shared / household-level fields ---
+    budget_nis: int | None = Field(
+        default=None,
+        description="Total group budget in NIS/month. None if not stated.",
+    )
+    move_in_date: date | None = Field(
+        default=None,
+        description=(
+            "Earliest date the group can move in. "
+            "Immediate → today, within_month → today+30, flexible/unstated → null."
+        ),
+    )
+    has_pets: bool | None = Field(
+        default=None,
+        description="True=household has pets, False=explicitly none, None=not mentioned.",
+    )
+    household_size: int | None = Field(
+        default=None,
+        description=(
+            "Total number of occupants (including the sender). "
+            "1=alone, 2=couple, etc. None=not stated. "
+            "Must equal len(applicants) when known."
+        ),
+    )
     preferred_language: Language | None = Field(default=None)
 
-    # --- Provenance ---
+    # --- Per-person profiles (>= 1 when message is an application) ---
+    applicants: list[TenantProfile] = Field(default_factory=list)
+
+    # --- Group-level provenance ---
     provenance: dict[str, Provenance] = Field(default_factory=dict)
 
 

@@ -4,7 +4,7 @@ Quick manual test for vector creation and cosine scoring.
 Usage (venv active):
     python scripts/test_vector.py
 
-You'll be prompted to paste a TenantProfile JSON (output from test_extraction.py).
+You'll be prompted to paste a TenantGroup JSON (output from test_extraction.py).
 Default ScoringCriteria and rent_nis are used — edit the defaults below to change them.
 """
 
@@ -13,13 +13,13 @@ import sys
 
 sys.path.insert(0, "src")
 
-from rentflow.offer.models import ScoringCriteria, TenantProfile
+from rentflow.offer.models import ScoringCriteria, TenantGroup
 from rentflow.scoring.vectors import (
     DIM_LABELS,
     cosine_similarity,
     criteria_to_vector,
+    group_to_vector,
     is_dealbreaker,
-    profile_to_vector,
 )
 
 # --- Edit these defaults to match the listing under test ---
@@ -33,7 +33,7 @@ DEFAULT_CRITERIA = ScoringCriteria(
 
 
 def main() -> None:
-    print("Paste TenantProfile JSON (blank line to finish):")
+    print("Paste TenantGroup JSON (blank line to finish):")
     lines = []
     while True:
         line = input()
@@ -51,34 +51,38 @@ def main() -> None:
         print(f"Invalid JSON: {exc}")
         return
 
-    profile = TenantProfile.model_validate(data)
+    group = TenantGroup.model_validate(data)
     criteria = DEFAULT_CRITERIA
     rent_nis = DEFAULT_RENT_NIS
 
-    pv = profile_to_vector(profile, criteria, rent_nis)
+    gv = group_to_vector(group, criteria, rent_nis)
     cv = criteria_to_vector(criteria)
-    score = cosine_similarity(pv, cv) * 100
-    dealbreaker, reason = is_dealbreaker(profile, criteria, rent_nis)
+    score = cosine_similarity(gv, cv) * 100
+    dealbreaker, reason = is_dealbreaker(group, criteria, rent_nis)
 
     print("\n--- VECTORS ---")
-    print(f"{'Dimension':<14} {'Profile':>8}  {'Ideal':>8}")
+    print(f"{'Dimension':<14} {'Group':>8}  {'Ideal':>8}")
     print("-" * 36)
-    for label, p, c in zip(DIM_LABELS, pv, cv):
-        print(f"{label:<14} {p:>8.4f}  {c:>8.4f}")
+    for label, g, c in zip(DIM_LABELS, gv, cv):
+        print(f"{label:<14} {g:>8.4f}  {c:>8.4f}")
+
+    print(f"\n--- APPLICANTS ({len(group.applicants)}) ---")
+    for i, p in enumerate(group.applicants):
+        print(f"  [{i}] employ={p.employment_status} age={p.age} gender={p.gender}")
 
     print(f"\n--- SCORE ---")
     print(f"Cosine similarity : {score:.1f} / 100")
     if dealbreaker:
-        final = score * 0.15
+        final = score * 0.01
         print(f"Dealbreaker       : YES — {reason}")
-        print(f"Final score       : {final:.1f} / 100  (×0.15 penalty)")
+        print(f"Final score       : {final:.1f} / 100  (×0.01 penalty)")
     else:
         print(f"Dealbreaker       : no")
         print(f"Final score       : {score:.1f} / 100")
 
     approved = criteria.approved_threshold
     rejected = criteria.rejected_threshold
-    final_score = score * (0.15 if dealbreaker else 1.0)
+    final_score = score * (0.01 if dealbreaker else 1.0)
     if final_score >= approved:
         qual = "Approved"
     elif final_score >= rejected:

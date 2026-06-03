@@ -15,6 +15,7 @@ from rentflow.offer.models import (
     Listing,
     RawOffer,
     ScoringCriteria,
+    TenantGroup,
     TenantProfile,
 )
 
@@ -37,16 +38,71 @@ def base_criteria() -> ScoringCriteria:
 
 @pytest.fixture
 def ideal_profile() -> TenantProfile:
-    """A profile that achieves perfect compatibility against base_criteria."""
+    """A single-person profile that achieves perfect compatibility against base_criteria."""
     return TenantProfile(
-        budget_nis=7500,                           # >= rent_nis (7500) → 1.0
-        move_in_date=date(2026, 8, 31),             # exactly the deadline → 1.0
         employment_status=EmploymentStatus.EMPLOYED,
-        has_pets=False,
-        num_roommates=0,
         age=28,
         gender=Gender.FEMALE,
         preferred_language=Language.ENGLISH,
+    )
+
+
+@pytest.fixture
+def ideal_group() -> TenantGroup:
+    """A solo group that achieves perfect compatibility against base_criteria."""
+    return TenantGroup(
+        budget_nis=7500,                           # >= rent_nis (7500) → 1.0
+        move_in_date=date(2026, 8, 31),             # exactly the deadline → 1.0
+        has_pets=False,
+        household_size=1,
+        applicants=[
+            TenantProfile(
+                employment_status=EmploymentStatus.EMPLOYED,
+                age=28,
+                gender=Gender.FEMALE,
+            )
+        ],
+    )
+
+
+@pytest.fixture
+def couple_group() -> TenantGroup:
+    """A couple: one employed female (28), one employed male (30). Both in-range."""
+    return TenantGroup(
+        budget_nis=7500,
+        move_in_date=date(2026, 8, 31),
+        has_pets=False,
+        household_size=2,
+        applicants=[
+            TenantProfile(
+                employment_status=EmploymentStatus.EMPLOYED,
+                age=28,
+                gender=Gender.FEMALE,
+            ),
+            TenantProfile(
+                employment_status=EmploymentStatus.EMPLOYED,
+                age=30,
+                gender=Gender.MALE,
+            ),
+        ],
+    )
+
+
+@pytest.fixture
+def roommates_group() -> TenantGroup:
+    """Three students, one representative profile, shared budget."""
+    return TenantGroup(
+        budget_nis=10500,
+        move_in_date=date(2026, 8, 31),
+        has_pets=False,
+        household_size=3,
+        applicants=[
+            TenantProfile(
+                employment_status=EmploymentStatus.STUDENT,
+                age=26,
+                gender=None,
+            )
+        ],
     )
 
 

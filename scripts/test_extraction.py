@@ -54,10 +54,10 @@ def main() -> None:
     raw = client.extract_raw(system_prompt=SYSTEM_PROMPT, user_text=text)
     print(json.dumps(raw, indent=2, ensure_ascii=False))
 
-    print("\n--- PARSED TenantProfile ---")
+    print("\n--- PARSED TenantGroup ---")
     engine = ExtractionEngine(client=client)
     result = engine.extract(offer)
-    print(json.dumps(result.profile.model_dump(mode="json"), indent=2, ensure_ascii=False))
+    print(json.dumps(result.group.model_dump(mode="json"), indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":

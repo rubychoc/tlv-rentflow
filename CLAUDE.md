@@ -77,36 +77,47 @@ Ingestion     Extraction         Scoring
 ## Key data contracts (`src/rentflow/offer/models.py`)
 
 - `RawOffer` — the validated incoming message. All fields required. `channel` injected from URL path, not body.
-- `TenantProfile` — every extracted field is `Optional` (`None` = not stated, never guessed). Includes `age: int | None` and `gender: Gender | None` in addition to the core screening fields. `provenance: dict[str, Provenance]` maps field names to source substrings for auditing.
-- `MoveInReadiness` enum uses buckets (`IMMEDIATE`/`WITHIN_MONTH`/`FLEXIBLE`/`SPECIFIC_DATE`).
-- `has_pets` is three-valued: `True` (has pets), `False` (explicitly said none), `None` (never mentioned).
-- `gender` is three-valued enum: `MALE`/`FEMALE`/`OTHER` or `None` (not mentioned).
+- `TenantGroup` — Station 2's output. Holds the household-level shared facts and a list of per-person `TenantProfile`s. A solo applicant is a group of one. A non-application message produces `applicants=[]` and all-null shared fields.
+  - Shared fields: `budget_nis`, `move_in_date`, `has_pets`, `household_size`, `preferred_language`, `provenance`.
+  - `household_size` = total occupants (including sender). `None` if not stated.
+- `TenantProfile` — per-person data for one applicant. Fields: `employment_status`, `age`, `gender`, `name`, `phone`, `provenance`. Every field is `Optional` (`None` = not stated, never guessed).
+- `has_pets` is three-valued (on `TenantGroup`): `True` (household has pets), `False` (explicitly none), `None` (never mentioned).
+- `gender` is three-valued enum (on `TenantProfile`): `MALE`/`FEMALE`/`OTHER` or `None` (not mentioned).
 
 ## Scoring model (`src/rentflow/scoring/`)
 
 ### `vectors.py` — Feature vectors (pure functions)
 
-Each dimension maps a tenant field to a compatibility value in [0, 1]:
-- **budget**: price-band scoring — `≥ rent_nis` → 1.0; `[price_floor, rent_nis)` → linear interpolation; `< price_floor` → 0.0 (dealbreaker); `None` → 1.0 (no floor) or 0.5 (floor set, benefit of the doubt).
-- **pets**, **employment**, **move_in**, **occupants**: same 1.0 / 0.0 / 0.5 pattern as before.
-- **age**: linear decay from 1.0 within `±age_tolerance` of `preferred_age` to 0.0 at `±2×age_tolerance`. `None` → 0.5.
-- **gender**: 1.0 if matches `preferred_gender`, 0.0 if mismatch, 0.5 if `None` or no preference set.
+Seven dimensions, split into shared (group-level) and per-person (averaged across applicants):
 
-Dimensions are scaled by `sqrt(weight)` so cosine similarity properly reflects the landlord's priorities.
+**Shared dims** (read from `TenantGroup`):
+- **budget**: `≥ rent_nis` → 1.0; `[price_floor, rent_nis)` → linear interpolation; `< price_floor` → 0.0; `None` → 1.0 (implicit acceptance).
+- **pets**: `False` and forbidden → 1.0; `True` → 0.0; `None` → 0.05 (_UNKNOWN).
+- **move_in**: decay from deadline distance; `None` → 1.0 (implicit acceptance).
+- **occupants**: `household_size ≤ max_occupants` → 1.0; over → 0.0; `None` → falls back to `len(applicants)`.
+
+**Per-person dims** (averaged over `TenantGroup.applicants`):
+- **employment**: 1.0 employed/self-employed, 0.5 student, 0.0 unemployed, 0.05 unknown.
+- **age**: decay from `[min_age, max_age]` range; `None` → 0.05.
+- **gender**: 1.0 match, 0.0 mismatch, 0.05 unknown.
+
+Dimensions are scaled by `sqrt(weight)`. Dealbreakers remain strict — one member's violation vetoes the whole group.
 
 ### `engine.py` — ScoringEngine
 
 ```
-ScoringEngine(criteria, rent_nis).score(profile) → ScoreResult
+ScoringEngine(criteria, rent_nis).score(group: TenantGroup) → ScoreResult
 ```
 
 Algorithm:
-1. Build `criteria_to_vector` (all dims = 1.0 × sqrt-weight) and `profile_to_vector`.
-2. Compute `cosine_similarity` → raw [0, 1].
-3. Check `is_dealbreaker` — hard constraints:
-   - Tenant has pets but `pets_allowed=False` → ×0.15 penalty.
-   - Tenant's stated budget < `lowest_price_nis` → ×0.15 penalty.
-4. `score = cosine × multiplier × 100`.
+1. Build `criteria_to_vector` (all dims = 1.0 × sqrt-weight) and `group_to_vector`.
+2. Compute dot-product ratio: `dot(g, c) / dot(c, c)` → raw [0, 1].
+3. Check `is_dealbreaker` — strict hard constraints (any member's violation vetoes the group):
+   - Household has pets but `pets_allowed=False` → ×0.01 penalty.
+   - Group budget < `lowest_price_nis` → ×0.01 penalty.
+   - Move-in misses strict deadline → ×0.01 penalty.
+   - `household_size > max_occupants` → ×0.01 penalty.
+4. `score = raw_ratio × multiplier × 100`.
 5. Map to `Approved/Review/Rejected` via configurable thresholds.
 
 ### `ScoringCriteria` key fields
@@ -114,11 +125,11 @@ Algorithm:
 | Field | Meaning |
 |-------|---------|
 | `lowest_price_nis` | Private minimum price landlord will accept (y). Must be ≤ `Listing.rent_nis` (x). |
-| `preferred_age` + `age_tolerance` | Soft age target; scored by distance. |
+| `min_age` / `max_age` | Soft age range; scored by decay outside the range. |
 | `preferred_gender` | Soft gender preference. |
 | `age_pref_public` / `gender_pref_public` | Whether to advertise the preference in the public listing. **No effect on scoring.** |
 | `pets_allowed` | Hard constraint when False — violation is a dealbreaker. |
-| All other existing fields | Unchanged from original design. |
+| `max_occupants` | Hard constraint — `household_size` over this is a dealbreaker. |
 
 ## Simulation design
 
@@ -126,7 +137,7 @@ Real WhatsApp/Facebook/Yad2 integration is impossible in scope (no public APIs, 
 
 ## Invariants to preserve
 
-- `None` in `TenantProfile` always means "not stated" — never a default or a guess. The extraction prompt, scoring rules, and eval metrics all depend on this three-way distinction.
+- `None` in `TenantGroup` or `TenantProfile` always means "not stated" — never a default or a guess. The extraction prompt, scoring rules, and eval metrics all depend on this three-way distinction.
 - Scoring (Station 3) must remain pure functions with no I/O. It is the only part of the pipeline that can be made provably correct.
 - The `OfferStore` Protocol boundary in `app.py` must not be broken — `app.py` must never import `InMemoryOfferStore` directly in production paths (only for the module-level default instance).
 - `ScoringEngine` requires both `criteria` and `rent_nis` — the public asking price is on `Listing`, not on `ScoringCriteria`, because it is public information that flows through separately from the private screening preferences.

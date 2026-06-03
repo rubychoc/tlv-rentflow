@@ -1,0 +1,1 @@
+{"passed": 62, "failed": 1, "total": 63, "pass_rate": "62/63", "failures": [{"test": "TestLiveCoupleWithSplitEmployment::test_at_least_one_gender_is_female", "message": "AssertionError: assert Gender.FEMALE in genders"}], "source": "pytest_run"}

@@ -4,381 +4,649 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RentFlow — Landlord Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    * { font-family: 'Inter', sans-serif; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    .step-inactive { opacity: 0.4; pointer-events: none; }
-    .badge-approved  { background: #d1fae5; color: #065f46; }
-    .badge-review    { background: #fef9c3; color: #854d0e; }
-    .badge-rejected  { background: #fee2e2; color: #991b1b; }
-
-    /* Score ring */
-    .ring-wrap { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
-    .ring-wrap svg { transform: rotate(-90deg); }
-    .ring-wrap .ring-bg  { fill: none; stroke: #e5e7eb; stroke-width: 6; }
-    .ring-wrap .ring-val { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .6s ease; }
-    .ring-wrap .ring-text {
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 15px; font-weight: 700; color: #111827;
+    :root {
+      --sand:    #f5f0e8;
+      --sand-2:  #ede8df;
+      --sand-3:  #e0d8cc;
+      --ink:     #1a1714;
+      --ink-2:   #3d3830;
+      --ink-3:   #6b6156;
+      --ink-4:   #9e948a;
+      --teal:    #0e7c72;
+      --teal-2:  #0a6059;
+      --teal-lt: #e6f4f2;
+      --teal-mid:#b3ddd9;
+      --amber:   #c8820a;
+      --amber-lt:#fef3dc;
+      --red:     #b83232;
+      --red-lt:  #fde8e8;
+      --white:   #ffffff;
+      --border:  #ddd7ce;
+      --shadow:  0 1px 3px rgba(26,23,20,.06), 0 4px 12px rgba(26,23,20,.04);
+      --shadow-lg: 0 4px 16px rgba(26,23,20,.10), 0 1px 4px rgba(26,23,20,.06);
+      --radius:  12px;
+      --radius-sm: 8px;
+      --font: 'DM Sans', system-ui, sans-serif;
+      --mono: 'DM Mono', monospace;
     }
 
-    /* Spinner */
-    .spinner {
-      width: 18px; height: 18px; border: 2px solid #e5e7eb;
-      border-top-color: #6366f1; border-radius: 50%;
-      animation: spin .7s linear infinite; display: inline-block;
+    html { font-size: 15px; }
+    body { font-family: var(--font); background: var(--sand); color: var(--ink); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+    /* ── Typography ── */
+    .label { font-size: .72rem; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; }
+    .caption { font-size: .78rem; color: var(--ink-4); line-height: 1.45; }
+
+    /* ── Inputs ── */
+    input[type=text], input[type=number], input[type=date], select, textarea {
+      width: 100%; font-family: var(--font); font-size: .875rem; color: var(--ink);
+      background: var(--white); border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm); padding: .55rem .75rem;
+      transition: border-color .15s, box-shadow .15s; outline: none; appearance: none;
     }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--teal); box-shadow: 0 0 0 3px rgba(14,124,114,.12);
+    }
+    input::placeholder, textarea::placeholder { color: var(--ink-4); }
+    input[type=range] { width: 100%; accent-color: var(--teal); cursor: pointer; height: 4px; }
+    input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--teal); cursor: pointer; flex-shrink: 0; }
+
+    /* ── Buttons ── */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+      font-family: var(--font); font-size: .875rem; font-weight: 600; border: none;
+      border-radius: var(--radius-sm); cursor: pointer; transition: all .15s; padding: .65rem 1.1rem; }
+    .btn-primary { background: var(--teal); color: var(--white); }
+    .btn-primary:hover { background: var(--teal-2); }
+    .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: var(--ink-3); border: 1.5px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-lt); }
+    .btn-sm { font-size: .78rem; padding: .4rem .75rem; }
+
+    /* ── Cards ── */
+    .card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+
+    /* ── Badges ── */
+    .badge { display: inline-flex; align-items: center; gap: .3rem; font-size: .73rem; font-weight: 600; padding: .22rem .6rem; border-radius: 99px; }
+    .badge-approved { background: var(--teal-lt); color: var(--teal-2); }
+    .badge-review   { background: var(--amber-lt); color: var(--amber); }
+    .badge-rejected { background: var(--red-lt); color: var(--red); }
+
+    /* ── Spinner ── */
+    .spinner { width: 17px; height: 17px; border: 2px solid var(--sand-3); border-top-color: var(--teal); border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; flex-shrink: 0; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Pulse dot for live status — static, no animation */
-    .pulse-dot {
-      width: 10px; height: 10px; border-radius: 50%; background: #22c55e;
-      flex-shrink: 0;
+    /* ── Scrollbar ── */
+    .thin-scroll::-webkit-scrollbar { width: 3px; }
+    .thin-scroll::-webkit-scrollbar-thumb { background: var(--sand-3); border-radius: 2px; }
+
+    /* ── Score ring ── */
+    .ring-wrap { position: relative; width: 68px; height: 68px; flex-shrink: 0; }
+    .ring-wrap svg { transform: rotate(-90deg); }
+    .ring-wrap .ring-bg  { fill: none; stroke: var(--sand-2); stroke-width: 5; }
+    .ring-wrap .ring-val { fill: none; stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset .6s ease; }
+    .ring-wrap .ring-text {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; font-family: var(--mono); color: var(--ink);
     }
 
-    .pop-in { /* no animation — instant render */ }
+    /* ── Live dot ── */
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); flex-shrink: 0; }
 
-    /* Scrollbar */
-    .thin-scroll::-webkit-scrollbar { width: 4px; }
-    .thin-scroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+    /* ── Provenance highlight ── */
+    mark { background: #fef3b0; border-radius: 2px; padding: 0 2px; }
 
-    /* Provenance highlight */
-    mark { background: #fef08a; border-radius: 2px; padding: 0 2px; }
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1.5px solid var(--border); }
 
-    /* Tab underline */
-    .tab-active { border-bottom: 2px solid #6366f1; color: #4f46e5; font-weight: 600; }
-    .tab-inactive { border-bottom: 2px solid transparent; color: #6b7280; }
+    /* ── Weight slider row ── */
+    .weight-row { display: flex; align-items: center; gap: .75rem; }
+    .weight-row input[type=range] { flex: 1; }
+    .weight-val { font-family: var(--mono); font-size: .78rem; color: var(--ink-3); width: 28px; text-align: right; flex-shrink: 0; }
+
+    /* ── Criteria + weight inline row ── */
+    .crit-row { display: grid; grid-template-columns: 1fr 180px; gap: 1.25rem; align-items: start; padding: .85rem 0; border-bottom: 1.5px solid var(--border); }
+    .crit-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .crit-row:first-child { padding-top: 0; }
+    .crit-left { display: flex; flex-direction: column; gap: .45rem; }
+    .crit-right { display: flex; flex-direction: column; gap: .3rem; padding-top: .1rem; }
+    .crit-right.disabled { opacity: .38; pointer-events: none; }
+    .weight-pip-row { display: flex; justify-content: space-between; padding: 0 1px; }
+    .weight-pip { width: 3px; height: 3px; border-radius: 50%; background: var(--sand-3); }
+    .weight-stars { display: flex; justify-content: space-between; font-size: .65rem; color: var(--ink-4); font-family: var(--mono); padding: 0 1px; }
+
+    /* ── Section header ── */
+    .section-label { display: flex; align-items: center; gap: .5rem; margin-bottom: .85rem; }
+    .section-label .num { width: 22px; height: 22px; border-radius: 50%; background: var(--teal); color: var(--white); font-size: .7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    /* ── Tenant card ── */
+    .tenant-card { display: flex; align-items: flex-start; gap: .85rem; padding: .85rem 1rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--white); cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+    .tenant-card:hover { border-color: var(--teal-mid); box-shadow: var(--shadow); }
+    .tenant-card.rank-1 { border-color: var(--teal-mid); background: var(--teal-lt); }
+
+    /* ── Channel pill ── */
+    .ch-pill { display: inline-flex; align-items: center; gap: .28rem; font-size: .7rem; font-weight: 600; padding: .15rem .5rem; border-radius: 99px; }
+    .ch-whatsapp { background: #dcfce7; color: #15803d; }
+    .ch-facebook  { background: #dbeafe; color: #1d4ed8; }
+    .ch-yad2      { background: #ffedd5; color: #c2410c; }
+
+    /* ── Tag chip ── */
+    .tag { font-size: .72rem; background: var(--sand); color: var(--ink-3); padding: .18rem .55rem; border-radius: 99px; display: inline-flex; align-items: center; gap: .25rem; }
+
+    /* ── Modal ── */
+    #modal-backdrop { position: fixed; inset: 0; background: rgba(26,23,20,.45); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 1rem; }
+    #modal-backdrop.open { display: flex; }
+    .modal { background: var(--white); border-radius: 16px; box-shadow: var(--shadow-lg); width: 100%; max-width: 640px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── Tabs ── */
+    .tab-bar { display: flex; border-bottom: 1.5px solid var(--border); padding: 0 1.25rem; }
+    .tab-btn { font-size: .84rem; font-weight: 500; padding: .7rem .85rem; color: var(--ink-4); border-bottom: 2px solid transparent; margin-bottom: -1.5px; cursor: pointer; transition: color .15s, border-color .15s; background: none; border-left: none; border-right: none; border-top: none; font-family: var(--font); }
+    .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); font-weight: 600; }
+
+    /* ── Screens ── */
+    #screen-create { display: flex; flex-direction: column; min-height: 100vh; }
+    #screen-live   { display: none; min-height: 100vh; flex-direction: column; }
+    body.live #screen-create { display: none; }
+    body.live #screen-live   { display: flex; }
+
+    /* ── Progress bar for score ── */
+    .score-bar-wrap { height: 4px; border-radius: 99px; background: var(--sand-2); overflow: hidden; }
+    .score-bar-fill { height: 100%; border-radius: 99px; transition: width .4s ease; }
+
+    /* ── Info tooltip ── */
+    .info-btn { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--sand-3); color: var(--ink-4); font-size: .65rem; font-weight: 700; font-family: var(--font); border: none; cursor: default; flex-shrink: 0; position: relative; vertical-align: middle; line-height: 1; }
+    .info-btn::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--white); font-size: .73rem; font-weight: 400; line-height: 1.45; white-space: normal; width: 220px; padding: .45rem .6rem; border-radius: 7px; pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 200; text-transform: none; letter-spacing: 0; }
+    .info-btn::before { content: ''; position: absolute; bottom: calc(100% + 1px); left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: var(--ink); pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 200; }
+    .info-btn:hover::after, .info-btn:hover::before { opacity: 1; }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body>
 
-<!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
-<header class="bg-white border-b border-gray-200 sticky top-0 z-50">
-  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>
-        </svg>
-      </div>
-      <span class="text-xl font-bold text-gray-900 tracking-tight">RentFlow</span>
-      <span class="text-xs text-gray-400 font-medium mt-0.5">Landlord Dashboard</span>
-    </div>
-    <div id="listing-badge" class="hidden items-center gap-2 bg-green-50 border border-green-200 rounded-full px-3 py-1.5">
-      <div class="pulse-dot"></div>
-      <span class="text-sm font-medium text-green-700" id="listing-badge-text">Listing Live</span>
-    </div>
-  </div>
-</header>
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 1 — CREATE LISTING
+     ══════════════════════════════════════════════════════ -->
+<div id="screen-create">
 
-<!-- ── MAIN ───────────────────────────────────────────────────────────────── -->
-<main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-  <!-- ── COL 1: Create Listing ──────────────────────────────────────────── -->
-  <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col gap-5" id="col-listing">
-    <div>
-      <div class="flex items-center gap-2 mb-1">
-        <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">1</span>
-        <h2 class="text-base font-semibold text-gray-900">Create Listing</h2>
-      </div>
-      <p class="text-xs text-gray-500">Set your apartment details and screening criteria. Once live, the webhook opens.</p>
-    </div>
-
-    <!-- Saved listings -->
-    <div id="saved-listings-wrap" class="hidden flex flex-col gap-2">
-      <div class="flex items-center justify-between">
-        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Saved Listings</p>
-        <button type="button" id="clear-saved-btn" class="text-xs text-gray-400 hover:text-red-500 transition-colors">Clear all</button>
-      </div>
-      <div id="saved-listings-list" class="flex flex-col gap-1.5"></div>
-      <div class="border-t border-gray-100 pt-1"></div>
-    </div>
-
-    <form id="listing-form" class="flex flex-col gap-4">
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">Address</label>
-        <input id="f-address" type="text" placeholder="Rothschild Blvd 22, Tel Aviv"
-          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Asking rent (₪/mo)</label>
-          <input id="f-rent" type="number" placeholder="7500"
-            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Lowest Price (₪) <span class="text-gray-400 font-normal">🔒</span></label>
-          <input id="f-price-floor" type="number" placeholder="6500"
-            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-        </div>
-      </div>
-      <p class="text-xs text-gray-400 -mt-2">Lowest price is private — tenants in [lowest price, asking] get partial score; below lowest price is a dealbreaker.</p>
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">Description (optional)</label>
-        <textarea id="f-desc" rows="2" placeholder="3BR, renovated, quiet street…"
-          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
-      </div>
-
-      <div class="border-t border-gray-100 pt-4">
-        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Screening Criteria</p>
-        <div class="flex flex-col gap-3">
-          <label class="flex items-center gap-3 text-sm text-gray-700 cursor-pointer">
-            <input id="f-employment" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400" />
-            Require employment (employed / self-employed)
-          </label>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">Pets policy</label>
-              <select id="f-pets" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                <option value="true">Pets allowed</option>
-                <option value="false">No pets</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">Max occupants</label>
-              <input id="f-max-occ" type="number" placeholder="any"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-            </div>
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">Must move in by</label>
-            <input id="f-movein" type="date"
-              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-          </div>
-          <label class="flex items-center gap-3 text-sm text-gray-700 cursor-pointer -mt-1">
-            <input id="f-movein-strict" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400" />
-            Strict move-in deadline (dealbreaker if missed)
-          </label>
-          <!-- Age preference -->
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">Min age <span class="text-gray-400 font-normal">🔒</span></label>
-              <input id="f-min-age" type="number" placeholder="none"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">Max age <span class="text-gray-400 font-normal">🔒</span></label>
-              <input id="f-max-age" type="number" placeholder="none"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-            </div>
-          </div>
-          <label class="flex items-center gap-3 text-sm text-gray-700 cursor-pointer -mt-1">
-            <input id="f-age-public" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400" />
-            Advertise age preference publicly
-          </label>
-          <!-- Gender preference -->
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">Preferred gender <span class="text-gray-400 font-normal">🔒</span></label>
-              <select id="f-pref-gender" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                <option value="">No preference</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
-          <label class="flex items-center gap-3 text-sm text-gray-700 cursor-pointer -mt-1">
-            <input id="f-gender-public" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-400" />
-            Advertise gender preference publicly
-          </label>
-        </div>
-      </div>
-
-      <div class="flex gap-2">
-        <button type="button" id="save-listing-btn"
-          class="flex-shrink-0 border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 text-gray-600 hover:text-indigo-700 font-medium rounded-xl py-2.5 px-3 text-sm transition-colors flex items-center gap-1.5">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-          </svg>
-          Save
-        </button>
-        <button type="submit" id="listing-btn"
-          class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors flex items-center justify-center gap-2">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-          Go Live
-        </button>
-      </div>
-    </form>
-
-    <div id="listing-success" class="hidden rounded-xl bg-green-50 border border-green-200 p-3 text-sm text-green-800">
-      <span class="font-semibold">Listing live!</span>
-      <span id="listing-success-id" class="text-green-600 ml-1"></span>
-    </div>
-    <div id="listing-error" class="hidden rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700"></div>
-  </section>
-
-  <!-- ── COL 2: Incoming Offers ─────────────────────────────────────────── -->
-  <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col gap-4 step-inactive" id="col-offers">
-    <div class="flex items-start justify-between">
-      <div>
-        <div class="flex items-center gap-2 mb-1">
-          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">2</span>
-          <h2 class="text-base font-semibold text-gray-900">Incoming Offers</h2>
-        </div>
-        <p class="text-xs text-gray-500">Submit a tenant message. The pipeline will extract and score it.</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <span id="offer-count-badge" class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2 py-0.5 rounded-full">0 offers</span>
-      </div>
-    </div>
-
-    <!-- Offer submission form -->
-    <form id="offer-form" class="flex flex-col gap-3">
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Channel</label>
-          <select id="f-channel" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-            <option value="whatsapp">WhatsApp</option>
-            <option value="facebook">Facebook</option>
-            <option value="yad2">Yad2</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Sender</label>
-          <input id="f-sender" type="text" placeholder="+972541234567"
-            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-        </div>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">Message</label>
-        <textarea id="f-text" rows="3" placeholder="היי, מעוניין בדירה. תקציב 7000 ₪, נכנס מיידי. עובד בהייטק, ללא חיות."
-          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"></textarea>
-      </div>
-      <button type="submit" id="offer-btn"
-        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors flex items-center justify-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-        </svg>
-        Submit &amp; Run Pipeline
-      </button>
-    </form>
-
-    <!-- Fixture loader -->
-    <div class="border-t border-gray-100 pt-3">
-      <p class="text-xs text-gray-400 mb-2 font-medium">Or load from fixtures</p>
-      <div class="flex gap-2 flex-wrap" id="fixture-btns"></div>
-    </div>
-
-    <!-- Offer feed -->
-    <div class="border-t border-gray-100 pt-3 flex-1">
-      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recent</p>
-      <div id="offer-feed" class="flex flex-col gap-2 max-h-64 overflow-y-auto thin-scroll pr-1"></div>
-    </div>
-  </section>
-
-  <!-- ── COL 3: Ranked Tenants ──────────────────────────────────────────── -->
-  <section class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col gap-4 step-inactive" id="col-results">
-    <div class="flex items-start justify-between">
-      <div>
-        <div class="flex items-center gap-2 mb-1">
-          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">3</span>
-          <h2 class="text-base font-semibold text-gray-900">Ranked Tenants</h2>
-        </div>
-        <p class="text-xs text-gray-500">Candidates sorted by compatibility score.</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <button id="sort-btn" title="Toggle sort order" class="text-xs text-gray-500 hover:text-indigo-600 font-medium flex items-center gap-1 border border-gray-200 rounded-lg px-2 py-1 hover:border-indigo-300 transition-colors">
-          <svg id="sort-icon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M3 4h13M3 8h9M3 12h5m8 4l-4 4m0 0l-4-4m4 4V4"/>
-          </svg>
-          <span id="sort-label">High→Low</span>
-        </button>
-        <button id="refresh-btn" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0114.93-3.36M20 14a8 8 0 01-14.93 3.36"/>
-          </svg>
-          Refresh
-        </button>
-      </div>
-    </div>
-
-    <div id="results-list" class="flex flex-col gap-3 max-h-[calc(100vh-220px)] overflow-y-auto thin-scroll pr-1"></div>
-    <div id="results-empty" class="flex flex-col items-center justify-center py-12 text-gray-400">
-      <svg class="w-10 h-10 mb-2 opacity-40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-        <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+  <!-- Header -->
+  <header style="background:var(--white); border-bottom:1.5px solid var(--border); position:sticky; top:0; z-index:50; padding:.9rem 1.5rem; display:flex; align-items:center; justify-content:space-between;">
+    <div style="display:flex; align-items:center; gap:.6rem;">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="8" fill="var(--teal)"/>
+        <path d="M6 14l8-8 8 8M8 12.5V21a.5.5 0 00.5.5h4v-4h3v4h4a.5.5 0 00.5-.5v-8.5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <p class="text-sm font-medium">No results yet</p>
-      <p class="text-xs mt-0.5">Submit offers to see ranked tenants</p>
+      <span style="font-size:1rem; font-weight:700; color:var(--ink); letter-spacing:-.02em;">RentFlow</span>
     </div>
-  </section>
+    <span class="caption">Landlord Portal</span>
+  </header>
 
-</main>
+  <!-- Body -->
+  <main style="flex:1; display:flex; align-items:flex-start; justify-content:center; padding:2.5rem 1rem 4rem;">
+    <div style="width:100%; max-width:760px;">
 
-<!-- ── TENANT DETAIL MODAL ────────────────────────────────────────────────── -->
-<div id="modal-backdrop" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
-
-    <!-- Modal header -->
-    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
-      <div class="flex items-center gap-3">
-        <h3 class="font-semibold text-gray-900 text-base" id="modal-title">Tenant Profile</h3>
-        <span id="modal-score-badge" class="text-sm font-bold px-2.5 py-0.5 rounded-full"></span>
+      <!-- Hero -->
+      <div style="text-align:center; margin-bottom:2.5rem;">
+        <h1 style="font-size:1.75rem; font-weight:700; color:var(--ink); letter-spacing:-.03em; line-height:1.2; margin-bottom:.5rem;">Create Your Listing</h1>
+        <p class="caption" style="font-size:.9rem;">Set your apartment details, screening criteria, and scoring weights. Click <strong>Make Listing Live</strong> to open the webhook.</p>
       </div>
-      <button id="modal-close" class="text-gray-400 hover:text-gray-700 transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M6 18L18 6M6 6l12 12"/>
-        </svg>
+
+      <!-- Saved listings -->
+      <div id="saved-wrap" style="display:none; margin-bottom:1.25rem; overflow:hidden;" class="card">
+        <div style="padding:.75rem 1rem .5rem; display:flex; align-items:center; justify-content:space-between;">
+          <span class="label">Saved Listings</span>
+          <button id="clear-saved-btn" class="btn btn-sm btn-ghost" style="padding:.25rem .6rem; font-size:.72rem;">Clear all</button>
+        </div>
+        <div id="saved-list" style="padding:0 .75rem .75rem; display:flex; flex-direction:column; gap:.4rem;"></div>
+      </div>
+
+      <form id="listing-form">
+        <!-- ── Apartment Details ── -->
+        <div class="card" style="padding:1.4rem 1.5rem; margin-bottom:1rem;">
+          <div class="section-label">
+            <span class="num">1</span>
+            <span style="font-size:.9rem; font-weight:600; color:var(--ink);">Apartment Details</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:.9rem;">
+            <div>
+              <label class="label" style="display:block; margin-bottom:.35rem;">Address</label>
+              <input id="f-address" type="text" placeholder="Rothschild Blvd 22, Tel Aviv" />
+            </div>
+            <div>
+              <label class="label" style="display:block; margin-bottom:.35rem;">Description <span style="font-weight:400;">(optional)</span></label>
+              <textarea id="f-desc" rows="2" placeholder="3BR, renovated, quiet street near the beach…" style="resize:none;"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Screening Criteria + Weights ── -->
+        <div class="card" style="padding:1.4rem 1.5rem; margin-bottom:1rem;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:1rem;">
+            <div class="section-label" style="margin-bottom:0;">
+              <span class="num">2</span>
+              <span style="font-size:.9rem; font-weight:600; color:var(--ink);">Criteria &amp; Weights</span>
+            </div>
+            <span class="caption" style="font-size:.72rem;">Weight</span>
+          </div>
+
+          <!-- column header -->
+          <div style="display:grid; grid-template-columns:1fr 180px; gap:1.25rem; padding-bottom:.5rem; border-bottom:1.5px solid var(--border); margin-bottom:.1rem;">
+            <span class="label">Criterion</span>
+            <div style="display:flex; justify-content:space-between; padding:0 1px;">
+              <span class="label" style="font-size:.62rem;">off</span>
+              <span class="label" style="font-size:.62rem;">low</span>
+              <span class="label" style="font-size:.62rem;">mid</span>
+              <span class="label" style="font-size:.62rem;">high</span>
+              <span class="label" style="font-size:.62rem;">max</span>
+            </div>
+          </div>
+
+          <!-- Budget -->
+          <div class="crit-row">
+            <div class="crit-left">
+              <div style="display:flex; align-items:center; gap:.4rem;">
+                <label class="label">Budget</label>
+                <span class="info-btn" data-tip="Asking rent is public. Min. floor is private — bids between floor and asking score proportionally; below floor is a hard dealbreaker.">i</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:.6rem;">
+                <div>
+                  <p class="caption" style="margin-bottom:.3rem;">Asking Rent (₪/mo)</p>
+                  <input id="f-rent" type="number" placeholder="7,500" />
+                </div>
+                <div>
+                  <p class="caption" style="margin-bottom:.3rem;">Min. Floor <span style="color:var(--ink-4);">🔒</span></p>
+                  <input id="f-price-floor" type="number" placeholder="6,500" />
+                </div>
+              </div>
+            </div>
+            <div class="crit-right" id="wr-budget">
+              <input type="range" id="w-budget" min="1" max="5" step="1" value="3" oninput="syncWeightLabel('budget')" />
+              <div class="weight-pip-row"><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span></div>
+              <div class="weight-stars"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+            </div>
+          </div>
+
+          <!-- Pets -->
+          <div class="crit-row">
+            <div class="crit-left">
+              <div style="display:flex; align-items:center; gap:.4rem;">
+                <label class="label">Pets Policy</label>
+                <span class="info-btn" data-tip="'No pets' is a hard dealbreaker — any tenant with pets is rejected outright. Weight only applies when pets are allowed (penalises tenants who don't mention pets).">i</span>
+              </div>
+              <div style="display:flex; gap:.5rem;">
+                <label style="flex:1; display:flex; align-items:center; gap:.5rem; padding:.5rem .65rem; border:1.5px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; font-size:.84rem; transition:border-color .15s;" id="pet-yes-lbl">
+                  <input type="radio" name="pets" id="f-pets-yes" value="true" style="accent-color:var(--teal);" /> Pets OK
+                </label>
+                <label style="flex:1; display:flex; align-items:center; gap:.5rem; padding:.5rem .65rem; border:1.5px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; font-size:.84rem; transition:border-color .15s;" id="pet-no-lbl">
+                  <input type="radio" name="pets" id="f-pets-no" value="false" style="accent-color:var(--teal);" checked /> No pets <span style="font-size:.68rem; color:var(--red);">●</span>
+                </label>
+              </div>
+            </div>
+            <div class="crit-right" style="visibility:hidden;" id="wr-pets">
+              <input type="range" id="w-pets" min="1" max="5" step="1" value="5" disabled />
+            </div>
+          </div>
+
+          <!-- Move-in -->
+          <div class="crit-row">
+            <div class="crit-left">
+              <div style="display:flex; align-items:center; gap:.4rem;">
+                <label class="label">Move-in Deadline</label>
+                <span class="info-btn" data-tip="Strict mode makes missing the deadline a hard dealbreaker. Without strict, the weight controls how much earlier availability is preferred.">i</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr auto; gap:.6rem; align-items:center;">
+                <input id="f-movein" type="date" />
+                <label style="display:flex; align-items:center; gap:.4rem; white-space:nowrap; font-size:.82rem; color:var(--ink-3); cursor:pointer;">
+                  <input id="f-movein-strict" type="checkbox" /> Strict <span style="font-size:.68rem; color:var(--red);">●</span>
+                </label>
+              </div>
+            </div>
+            <div class="crit-right" id="wr-movein">
+              <input type="range" id="w-movein" min="1" max="5" step="1" value="3" oninput="syncWeightLabel('movein')" />
+              <div class="weight-pip-row"><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span></div>
+              <div class="weight-stars"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+            </div>
+          </div>
+
+          <!-- Employment -->
+          <div class="crit-row">
+            <div class="crit-left">
+              <div style="display:flex; align-items:center; gap:.4rem;">
+                <label class="label">Employment</label>
+                <span class="info-btn" data-tip="Employed and self-employed score full marks. Students score 50%. Unemployed score 0%. The weight sets how much employment status influences the final score.">i</span>
+              </div>
+              <label style="display:flex; align-items:center; gap:.5rem; font-size:.875rem; color:var(--ink-2); cursor:pointer;">
+                <input id="f-employment" type="checkbox" />
+                <span>Require employment</span>
+              </label>
+            </div>
+            <div class="crit-right" id="wr-employment">
+              <input type="range" id="w-employment" min="1" max="5" step="1" value="3" oninput="syncWeightLabel('employment')" />
+              <div class="weight-pip-row"><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span></div>
+              <div class="weight-stars"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+            </div>
+          </div>
+
+          <!-- Max occupants -->
+          <div class="crit-row">
+            <div class="crit-left">
+              <div style="display:flex; align-items:center; gap:.4rem;">
+                <label class="label">Max Occupants <span style="font-weight:400;color:var(--ink-4);font-size:.68rem;">dealbreaker</span></label>
+                <span class="info-btn" data-tip="Groups exceeding this headcount are rejected outright. Leave blank for no limit.">i</span>
+              </div>
+              <input id="f-max-occ" type="number" placeholder="any" style="max-width:140px;" />
+            </div>
+            <div class="crit-right disabled" id="wr-occupants" style="visibility:hidden;">
+              <input type="range" id="w-occupants" min="1" max="5" step="1" value="5" disabled />
+              <div class="weight-pip-row"><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span></div>
+              <div class="weight-stars"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+            </div>
+          </div>
+
+          <!-- Age preference -->
+          <div class="crit-row">
+            <div class="crit-left">
+              <div style="display:flex; align-items:center; gap:.4rem;">
+                <label class="label">Age Preference <span style="font-weight:400;color:var(--ink-4);">🔒 soft</span></label>
+                <span class="info-btn" data-tip="Soft preference — never a dealbreaker. Scores decay the further a tenant falls outside the range. Leave both blank to ignore age entirely.">i</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:.6rem; align-items:center;">
+                <input id="f-min-age" type="number" placeholder="min" />
+                <input id="f-max-age" type="number" placeholder="max" />
+                <label style="display:flex; align-items:center; gap:.35rem; white-space:nowrap; font-size:.82rem; color:var(--ink-3); cursor:pointer;">
+                  <input id="f-age-public" type="checkbox" /> Public
+                </label>
+              </div>
+            </div>
+            <div class="crit-right disabled" id="wr-age">
+              <input type="range" id="w-age" min="1" max="5" step="1" value="3" oninput="syncWeightLabel('age')" />
+              <div class="weight-pip-row"><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span></div>
+              <div class="weight-stars"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+            </div>
+          </div>
+
+          <!-- Gender preference -->
+          <div class="crit-row">
+            <div class="crit-left">
+              <div style="display:flex; align-items:center; gap:.4rem;">
+                <label class="label">Gender Preference <span style="font-weight:400;color:var(--ink-4);">🔒 soft</span></label>
+                <span class="info-btn" data-tip="Soft preference — never a dealbreaker. Tenants matching the preferred gender score full marks; mismatches score 0. The weight slider is disabled when 'No preference' is selected.">i</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr auto; gap:.6rem; align-items:center;">
+                <select id="f-pref-gender">
+                  <option value="">No preference</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+                <label style="display:flex; align-items:center; gap:.35rem; white-space:nowrap; font-size:.82rem; color:var(--ink-3); cursor:pointer;">
+                  <input id="f-gender-public" type="checkbox" /> Public
+                </label>
+              </div>
+            </div>
+            <div class="crit-right disabled" id="wr-gender">
+              <input type="range" id="w-gender" min="1" max="5" step="1" value="3" oninput="syncWeightLabel('gender')" />
+              <div class="weight-pip-row"><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span><span class="weight-pip"></span></div>
+              <div class="weight-stars"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Error / actions -->
+        <div id="listing-error" style="display:none; background:var(--red-lt); border:1.5px solid #f3c3c3; border-radius:var(--radius-sm); padding:.65rem .85rem; font-size:.84rem; color:var(--red); margin-bottom:.75rem;"></div>
+
+        <div style="display:flex; gap:.6rem;">
+          <button type="button" id="save-listing-btn" class="btn btn-ghost" style="flex-shrink:0;">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save
+          </button>
+          <button type="submit" id="listing-btn" class="btn btn-primary" style="flex:1; font-size:.925rem;">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            Make Listing Live
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </main>
+</div><!-- /screen-create -->
+
+
+<!-- ══════════════════════════════════════════════════════
+     SCREEN 2 — LIVE DASHBOARD
+     ══════════════════════════════════════════════════════ -->
+<div id="screen-live">
+
+  <!-- Header -->
+  <header style="background:var(--white); border-bottom:1.5px solid var(--border); position:sticky; top:0; z-index:50; padding:.75rem 1.5rem; display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+    <div style="display:flex; align-items:center; gap:.6rem;">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="8" fill="var(--teal)"/>
+        <path d="M6 14l8-8 8 8M8 12.5V21a.5.5 0 00.5.5h4v-4h3v4h4a.5.5 0 00.5-.5v-8.5" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span style="font-size:1rem; font-weight:700; color:var(--ink); letter-spacing:-.02em;">RentFlow</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:.5rem; background:var(--teal-lt); border:1.5px solid var(--teal-mid); border-radius:99px; padding:.3rem .75rem;">
+      <span class="live-dot"></span>
+      <span style="font-size:.78rem; font-weight:600; color:var(--teal-2);" id="live-badge-text">Listing Live</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:.5rem;">
+      <button id="send-msg-btn" class="btn btn-ghost btn-sm">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        Send Message
+      </button>
+      <button id="refresh-btn" class="btn btn-ghost btn-sm">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0114.93-3.36M20 14a8 8 0 01-14.93 3.36"/></svg>
+        Refresh
+      </button>
+      <button id="back-btn" class="btn btn-ghost btn-sm">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+        Edit Listing
       </button>
     </div>
+  </header>
 
-    <!-- Tabs -->
-    <div class="flex border-b border-gray-100 px-6 flex-shrink-0" id="modal-tabs">
-      <button class="tab-btn py-3 px-4 text-sm font-medium transition-colors" data-tab="profile">Profile</button>
-      <button class="tab-btn py-3 px-4 text-sm font-medium transition-colors" data-tab="breakdown">Breakdown</button>
+  <!-- Body: sidebar + main -->
+  <div style="display:flex; flex:1; min-height:0; gap:0;">
+
+    <!-- ── Sidebar: Apt Details ── -->
+    <aside style="width:280px; flex-shrink:0; border-right:1.5px solid var(--border); background:var(--white); padding:1.25rem; display:flex; flex-direction:column; gap:1.1rem; overflow-y:auto; min-height:calc(100vh - 57px);" class="thin-scroll">
+
+      <div>
+        <div class="label" style="margin-bottom:.65rem;">Listing</div>
+        <p id="side-address" style="font-size:.93rem; font-weight:600; color:var(--ink); margin-bottom:.3rem; line-height:1.3;"></p>
+        <p id="side-desc" class="caption" style="display:none;"></p>
+      </div>
+
+      <div style="display:flex; gap:.6rem;">
+        <div style="flex:1; background:var(--sand); border-radius:var(--radius-sm); padding:.65rem .75rem;">
+          <div class="label" style="margin-bottom:.25rem;">Asking Rent</div>
+          <p id="side-rent" style="font-size:1.05rem; font-weight:700; color:var(--teal-2); font-family:var(--mono);"></p>
+        </div>
+        <div style="flex:1; background:var(--sand); border-radius:var(--radius-sm); padding:.65rem .75rem;">
+          <div class="label" style="margin-bottom:.25rem;">Min. Floor</div>
+          <p id="side-floor" style="font-size:1.05rem; font-weight:700; color:var(--ink-3); font-family:var(--mono);"></p>
+        </div>
+      </div>
+
+      <hr class="divider" />
+
+      <div>
+        <div class="label" style="margin-bottom:.65rem;">Hard Dealbreakers</div>
+        <div id="side-dealbreakers" style="display:flex; flex-direction:column; gap:.35rem;"></div>
+      </div>
+
+      <hr class="divider" />
+
+      <div>
+        <div class="label" style="margin-bottom:.65rem;">Soft Preferences</div>
+        <div id="side-soft" style="display:flex; flex-direction:column; gap:.35rem;"></div>
+      </div>
+
+      <hr class="divider" />
+
+      <div>
+        <div class="label" style="margin-bottom:.65rem;">Weights</div>
+        <div id="side-weights" style="display:flex; flex-direction:column; gap:.3rem;"></div>
+      </div>
+
+    </aside>
+
+    <!-- ── Main: Ranked Tenants ── -->
+    <main style="flex:1; min-width:0; padding:1.5rem; overflow-y:auto;" class="thin-scroll">
+
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.1rem;">
+        <div>
+          <h2 style="font-size:1.05rem; font-weight:700; color:var(--ink); letter-spacing:-.02em;">Ranked Tenants</h2>
+          <p class="caption" id="results-subtitle">Candidates sorted by compatibility score.</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:.5rem;">
+          <span id="offer-count-chip" class="tag" style="font-size:.75rem; font-weight:600;"></span>
+          <button id="sort-btn" class="btn btn-ghost btn-sm">
+            <svg id="sort-icon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path d="M3 4h13M3 8h9M3 12h5m8 4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            <span id="sort-label">High → Low</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="results-list" style="display:flex; flex-direction:column; gap:.65rem;"></div>
+
+      <div id="results-empty" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4rem 1rem; color:var(--ink-4); text-align:center;">
+        <svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.4" viewBox="0 0 24 24" style="opacity:.4; margin-bottom:.75rem;"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <p style="font-size:.9rem; font-weight:600; margin-bottom:.25rem;">No results yet</p>
+        <p class="caption">Send tenant messages to the webhook to see ranked candidates here.</p>
+      </div>
+
+    </main>
+  </div>
+</div><!-- /screen-live -->
+
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL — SEND MESSAGE
+     ══════════════════════════════════════════════════════ -->
+<div id="send-modal-backdrop" style="position:fixed;inset:0;background:rgba(26,23,20,.45);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--white);border-radius:16px;box-shadow:var(--shadow-lg);width:100%;max-width:480px;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.25rem;border-bottom:1.5px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:.55rem;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" style="color:#15803d;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.106.549 4.09 1.51 5.814L.057 23.175a.75.75 0 00.918.919l5.42-1.456A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>
+        <span style="font-size:.9rem;font-weight:700;color:var(--ink);">Send via WhatsApp</span>
+      </div>
+      <button id="send-modal-close" style="background:none;border:none;cursor:pointer;color:var(--ink-4);padding:.2rem;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
     </div>
-
-    <!-- Tab panels -->
-    <div class="overflow-y-auto thin-scroll flex-1 px-6 py-5">
-      <div id="tab-profile" class="tab-panel flex flex-col gap-5"></div>
-      <div id="tab-breakdown" class="tab-panel hidden flex flex-col gap-3"></div>
+    <div style="padding:1.1rem 1.25rem;display:flex;flex-direction:column;gap:.75rem;">
+      <div>
+        <label class="label" style="display:block;margin-bottom:.35rem;">Sender</label>
+        <input id="sm-sender" type="text" placeholder="+972541234567" value="+972541234567" />
+      </div>
+      <div>
+        <label class="label" style="display:block;margin-bottom:.35rem;">Message</label>
+        <textarea id="sm-text" rows="4" placeholder="היי, מעוניין בדירה..." style="resize:none;"></textarea>
+      </div>
+      <div id="sm-error" style="display:none;background:var(--red-lt);border:1.5px solid #f3c3c3;border-radius:var(--radius-sm);padding:.5rem .7rem;font-size:.82rem;color:var(--red);"></div>
+      <button id="sm-submit" class="btn btn-primary" style="width:100%;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        Send
+      </button>
     </div>
-
   </div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════
+     MODAL — TENANT DETAIL
+     ══════════════════════════════════════════════════════ -->
+<div id="modal-backdrop">
+  <div class="modal">
+    <!-- Modal header -->
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; border-bottom:1.5px solid var(--border); flex-shrink:0;">
+      <div style="display:flex; align-items:center; gap:.6rem;">
+        <h3 id="modal-title" style="font-size:.95rem; font-weight:700; color:var(--ink);"></h3>
+        <span id="modal-score-badge" class="badge"></span>
+      </div>
+      <button id="modal-close" style="background:none; border:none; cursor:pointer; color:var(--ink-4); padding:.2rem;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <!-- Tabs -->
+    <div class="tab-bar" id="modal-tabs">
+      <button class="tab-btn active" data-tab="profile">Profile</button>
+      <button class="tab-btn" data-tab="breakdown">Breakdown</button>
+    </div>
+    <!-- Content -->
+    <div style="overflow-y:auto; flex:1; padding:1.1rem 1.25rem;" class="thin-scroll">
+      <div id="tab-profile" class="tab-panel"></div>
+      <div id="tab-breakdown" class="tab-panel" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+
 <script>
+// ── Weight helpers ────────────────────────────────────────────────────────
+// Map 1–5 slider value to the 0–100 internal weight scale
+const WEIGHT_MAP = { 1: 0, 2: 25, 3: 50, 4: 75, 5: 100 };
+
+function sliderToWeight(v) { return WEIGHT_MAP[parseInt(v)] ?? 50; }
+
+function syncWeightLabel(key) {
+  const slider = $('w-' + key);
+  if (!slider) return;
+  const val = parseInt(slider.value);
+  const row = slider.parentElement.querySelector('.weight-stars');
+  if (!row) return;
+  Array.from(row.children).forEach((span, i) => {
+    const active = (i + 1) === val;
+    span.style.color      = active ? 'var(--teal)' : '';
+    span.style.fontWeight = active ? '700' : '';
+  });
+}
+
+function setWeightDisabled(key, disabled) {
+  const wr = $('wr-' + key);
+  if (!wr) return;
+  if (disabled) {
+    wr.classList.add('disabled');
+    const slider = $('w-' + key);
+    if (slider) slider.value = 1;
+    syncWeightLabel(key);
+  } else {
+    wr.classList.remove('disabled');
+  }
+}
+
 // ── State ─────────────────────────────────────────────────────────────────
 const state = {
   listingLive: false,
   listingId: null,
-  offers: [],        // [{offer_id, channel, sender, text, status, error}]
-  results: [],       // from /pipeline/results
-  sortAsc: false,    // false = high→low (default)
+  listingData: null,  // {address, rent_nis, criteria, description}
+  results: [],
+  sortAsc: false,
 };
-
-// ── Fixtures (subset, loaded lazily) ─────────────────────────────────────
-const FIXTURES = [
-  { label: "HE: Budget + pet",    channel: "whatsapp", sender: "+972541000001", text: "היי, ראיתי את המודעה. תקציב שלי עד 6500 ₪, יכול להיכנס מיידי. עובד בהייטק. יש לי כלב קטן." },
-  { label: "EN: 2 friends",       channel: "facebook", sender: "fb_user_001",   text: "Hi! Me and 2 friends looking for a place. Budget ~10500 total. Move in September 1st 2026. All employed, no pets." },
-  { label: "HE: Student 2 ppl",   channel: "yad2",     sender: "yad2_002",      text: "שלום, אני ועוד שותף אחד מחפשים דירה. תקציב משותף 9000 ₪. שנינו עובדים. ללא חיות מחמד." },
-  { label: "EN: Not applying",    channel: "whatsapp", sender: "+972542000099", text: "Hi can u send more pics? Also whats the price again" },
-  { label: "EN: Pets + freelance",channel: "facebook", sender: "fb_user_003",   text: "Looking for a place for me, my partner, and our 2 cats. Budget 8500 NIS. Freelancer + employed. Flexible on dates." },
-  { label: "HE: Self-employed",   channel: "whatsapp", sender: "+972543000002", text: "מעוניין! תקציב 5800 עד 6200 ₪. עצמאי. ללא חיות. גמיש בתאריכים." },
-  { label: "EN: Engineer single", channel: "yad2",     sender: "yad2_005",      text: "Interested. Budget 6800. Single occupant, employed software engineer. No pets. Can move in July." },
-  { label: "EN: 3 students",      channel: "facebook", sender: "fb_user_009",   text: "Hi, is this place still available? We are 3 students looking for a place. Combined budget 10500. Flexible on move-in." },
-];
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-const qr = sel => document.querySelector(sel);
+const el = (tag, props = {}, ...children) => {
+  const e = document.createElement(tag);
+  Object.assign(e, props);
+  children.forEach(c => typeof c === 'string' ? e.insertAdjacentHTML('beforeend', c) : e.appendChild(c));
+  return e;
+};
 
-function channelIcon(ch) {
-  const icons = {
-    whatsapp: `<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.106.549 4.09 1.51 5.814L.057 23.175a.75.75 0 00.918.919l5.42-1.456A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.72 9.72 0 01-4.959-1.358l-.356-.212-3.683.99.995-3.623-.232-.373A9.72 9.72 0 012.25 12C2.25 6.616 6.616 2.25 12 2.25S21.75 6.616 21.75 12 17.384 21.75 12 21.75z"/></svg>`,
-    facebook: `<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073c0 6.027 4.388 11.024 10.125 11.927v-8.437H7.078v-3.49h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.49h-2.796v8.437C19.612 23.097 24 18.1 24 12.073z"/></svg>`,
-    yad2:     `<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`,
-  };
-  return icons[ch] || '';
+function channelClass(ch) {
+  return { whatsapp: 'ch-whatsapp', facebook: 'ch-facebook', yad2: 'ch-yad2' }[ch] || '';
 }
-
-function channelColor(ch) {
-  return { whatsapp: 'text-green-600 bg-green-50', facebook: 'text-blue-600 bg-blue-50', yad2: 'text-orange-600 bg-orange-50' }[ch] || 'text-gray-600 bg-gray-50';
+function channelIcon(ch) {
+  if (ch === 'whatsapp') return `<svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.106.549 4.09 1.51 5.814L.057 23.175a.75.75 0 00.918.919l5.42-1.456A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.72 9.72 0 01-4.959-1.358l-.356-.212-3.683.99.995-3.623-.232-.373A9.72 9.72 0 012.25 12C2.25 6.616 6.616 2.25 12 2.25S21.75 6.616 21.75 12 17.384 21.75 12 21.75z"/></svg>`;
+  if (ch === 'facebook') return `<svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073C24 5.404 18.627 0 12 0S0 5.404 0 12.073c0 6.027 4.388 11.024 10.125 11.927v-8.437H7.078v-3.49h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.49h-2.796v8.437C19.612 23.097 24 18.1 24 12.073z"/></svg>`;
+  return `<svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`;
 }
 
 function badgeClass(q) {
@@ -386,43 +654,33 @@ function badgeClass(q) {
 }
 
 function ringColor(score) {
-  if (score >= 75) return '#22c55e';
-  if (score >= 50) return '#f59e0b';
-  return '#ef4444';
+  if (score >= 75) return 'var(--teal)';
+  if (score >= 50) return 'var(--amber)';
+  return 'var(--red)';
 }
 
 function scoreRing(score) {
-  const r = 30, circ = 2 * Math.PI * r;
+  const r = 28, circ = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(100, score));
   const offset = circ * (1 - pct / 100);
   const color = ringColor(pct);
-  return `<div class="ring-wrap">
-    <svg width="72" height="72" viewBox="0 0 72 72">
-      <circle class="ring-bg" cx="36" cy="36" r="${r}"/>
-      <circle class="ring-val" cx="36" cy="36" r="${r}"
-        stroke="${color}"
-        stroke-dasharray="${circ.toFixed(1)}"
-        stroke-dashoffset="${offset.toFixed(1)}"/>
-    </svg>
-    <div class="ring-text">${Math.round(pct)}</div>
-  </div>`;
+  return `<div class="ring-wrap"><svg width="68" height="68" viewBox="0 0 68 68">
+    <circle class="ring-bg" cx="34" cy="34" r="${r}"/>
+    <circle class="ring-val" cx="34" cy="34" r="${r}" stroke="${color}"
+      stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"/>
+  </svg><div class="ring-text">${Math.round(pct)}</div></div>`;
 }
 
 function fieldLabel(k) {
-  const labels = {
-    budget_nis: 'Budget (stated)', move_in_date: 'Move-in',
-    employment_status: 'Employment', has_pets: 'Pets', num_roommates: 'Roommates',
-    age: 'Age', gender: 'Gender',
-    name: 'Name', phone: 'Phone', preferred_language: 'Language',
-  };
-  return labels[k] || k;
+  return { budget_nis:'Budget', move_in_date:'Move-in', has_pets:'Pets', household_size:'Household', preferred_language:'Language',
+    employment_status:'Employment', age:'Age', gender:'Gender', name:'Name', phone:'Phone' }[k] || k;
 }
 
 function formatVal(k, v) {
-  if (v === null || v === undefined) return '<span class="text-gray-300">—</span>';
-  if (k === 'budget_nis') return `<span class="font-semibold">₪${v.toLocaleString()}</span>`;
+  if (v === null || v === undefined) return '<span style="color:var(--ink-4);">—</span>';
+  if (k === 'budget_nis') return `<strong>₪${v.toLocaleString()}</strong>`;
   if (k === 'has_pets') return v ? '🐾 Yes' : 'No';
-  if (k === 'num_roommates') return v === 0 ? 'Alone' : `+${v}`;
+  if (k === 'household_size') return v === 1 ? 'Alone' : `${v} people`;
   if (k === 'preferred_language') return v === 'he' ? '🇮🇱 Hebrew' : '🇬🇧 English';
   return String(v).replace(/_/g, ' ');
 }
@@ -433,40 +691,76 @@ async function apiFetch(url, opts = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-// ── Render helpers ────────────────────────────────────────────────────────
-function renderOfferFeed() {
-  const feed = $('offer-feed');
-  if (state.offers.length === 0) {
-    feed.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">No offers yet</p>';
-    return;
+// ── Render sidebar ─────────────────────────────────────────────────────────
+function renderSidebar(listing) {
+  const c = listing.criteria || {};
+
+  $('side-address').textContent = listing.address || '—';
+  const desc = listing.description;
+  const descEl = $('side-desc');
+  if (desc) { descEl.textContent = desc; descEl.style.display = ''; }
+  else { descEl.style.display = 'none'; }
+
+  $('side-rent').textContent = listing.rent_nis ? `₪${listing.rent_nis.toLocaleString()}` : '—';
+  $('side-floor').textContent = c.lowest_price_nis ? `₪${c.lowest_price_nis.toLocaleString()}` : '—';
+
+  // Dealbreakers
+  const db = [];
+  if (c.pets_allowed === false) db.push('No pets');
+  if (c.max_occupants) db.push(`Max ${c.max_occupants} occupants`);
+  if (c.move_in_by && c.move_in_strict) db.push(`Move-in by ${c.move_in_by}`);
+  if (c.lowest_price_nis) db.push(`Budget ≥ ₪${c.lowest_price_nis.toLocaleString()}`);
+  $('side-dealbreakers').innerHTML = db.length
+    ? db.map(d => `<div style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--red);"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728"/></svg>${d}</div>`).join('')
+    : '<span class="caption">None set</span>';
+
+  // Soft prefs
+  const soft = [];
+  if (c.employment_required) soft.push('Employment required');
+  if (c.min_age || c.max_age) soft.push(`Age: ${c.min_age || '?'} – ${c.max_age || '?'}`);
+  if (c.preferred_gender) soft.push(`Prefer: ${c.preferred_gender}`);
+  if (c.move_in_by && !c.move_in_strict) soft.push(`Move-in by ${c.move_in_by} (soft)`);
+  $('side-soft').innerHTML = soft.length
+    ? soft.map(s => `<div style="display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--ink-3);"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>${s}</div>`).join('')
+    : '<span class="caption">None set</span>';
+
+  // Weights — display as 1-5 dots
+  const W_REVERSE = [[0,0],[25,1],[50,2],[75,3],[100,4]]; // 0-100 → filled dots (0-4 out of 4... use 0-5)
+  function w100toStars(v) {
+    if (v <= 0)  return 1;
+    if (v <= 25) return 2;
+    if (v <= 50) return 3;
+    if (v <= 75) return 4;
+    return 5;
   }
-  feed.innerHTML = state.offers.slice().reverse().map(o => `
-    <div class="pop-in flex items-start gap-2.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-      <span class="mt-0.5 inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${channelColor(o.channel)}">
-        ${channelIcon(o.channel)} ${o.channel}
-      </span>
-      <div class="flex-1 min-w-0">
-        <p class="text-xs text-gray-500 truncate">${o.sender}</p>
-        <p class="text-sm text-gray-800 line-clamp-2 mt-0.5">${o.text}</p>
-      </div>
-      <div class="flex-shrink-0 mt-0.5">
-        ${o.status === 'running' ? `<span class="spinner"></span>` :
-          o.status === 'error' ? `<span class="text-red-400" title="${o.error}">✕</span>` :
-          `<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>`}
-      </div>
-    </div>`).join('');
-
-  $('offer-count-badge').textContent = `${state.offers.length} offer${state.offers.length !== 1 ? 's' : ''}`;
+  const wmap = [
+    ['Budget',     c.budget_weight     ?? 50],
+    ['Pets',       c.pets_weight       ?? 50],
+    ['Move-in',    c.move_in_weight    ?? 50],
+    ['Employment', c.employment_weight ?? 50],
+    ['Occupants',  c.occupants_weight  ?? 50],
+    ['Age',        c.age_weight        ?? 50],
+    ['Gender',     c.gender_weight     ?? 50],
+  ];
+  $('side-weights').innerHTML = wmap.map(([lbl, val]) => {
+    const stars = w100toStars(val);
+    const dots = Array.from({length:5}, (_,i) =>
+      `<span style="width:6px;height:6px;border-radius:50%;background:${i < stars ? 'var(--teal)' : 'var(--sand-3)'};display:inline-block;"></span>`
+    ).join('');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;font-size:.79rem;">
+      <span style="color:var(--ink-3);">${lbl}</span>
+      <div style="display:flex;gap:3px;align-items:center;">${dots}</div>
+    </div>`;
+  }).join('');
 }
 
+// ── Render results ─────────────────────────────────────────────────────────
 function sortedResults() {
-  return state.sortAsc
-    ? [...state.results].reverse()
-    : [...state.results];
+  return state.sortAsc ? [...state.results].reverse() : [...state.results];
 }
 
-function removeResult(offerId, event) {
-  event.stopPropagation();
+function removeResult(offerId, ev) {
+  ev.stopPropagation();
   state.results = state.results.filter(r => r.offer?.offer_id !== offerId);
   renderResults();
 }
@@ -475,323 +769,220 @@ function renderResults() {
   const list = $('results-list');
   const empty = $('results-empty');
 
-  if (state.results.length === 0) {
+  const count = state.results.length;
+  $('offer-count-chip').textContent = `${count} candidate${count !== 1 ? 's' : ''}`;
+
+  if (count === 0) {
     list.innerHTML = '';
-    empty.classList.remove('hidden');
+    empty.style.display = 'flex';
     return;
   }
-  empty.classList.add('hidden');
+  empty.style.display = 'none';
 
   const ordered = sortedResults();
   list.innerHTML = ordered.map((r, i) => {
     const q = r.score?.qualification || 'unknown';
     const sc = r.score?.score ?? null;
-    const p = r.profile || {};
+    const g = r.group || {};
+    const applicants = g.applicants || [];
+    const primary = applicants[0] || {};
     const offer = r.offer || {};
     const offerId = offer.offer_id || '';
-    const ts = r.received_at ? new Date(r.received_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-    return `
-    <div class="rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-sm transition-all p-4 flex gap-4 group">
-      <div class="flex flex-col items-center gap-1.5 cursor-pointer" onclick="openModal('${offerId}')">
-        ${sc !== null ? scoreRing(sc) : `<div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">N/A</div>`}
-        <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${badgeClass(q)}">${q}</span>
+    const ts = r.received_at ? new Date(r.received_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    const senderName = primary.name
+      || (applicants.length > 1 ? `Group of ${g.household_size || applicants.length}` : null)
+      || offer.sender || 'Anonymous';
+    const isTop = i === 0;
+
+    return `<div class="tenant-card ${isTop ? 'rank-1' : ''}" onclick="openModal('${offerId}')">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:.35rem;flex-shrink:0;">
+        ${sc !== null ? scoreRing(sc) : `<div style="width:68px;height:68px;border-radius:50%;background:var(--sand-2);display:flex;align-items:center;justify-content:center;color:var(--ink-4);font-size:.75rem;">N/A</div>`}
       </div>
-      <div class="flex-1 min-w-0 cursor-pointer" onclick="openModal('${offerId}')">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="font-semibold text-gray-900 text-sm">${p.name || offer.sender || 'Anonymous'}</span>
-          <span class="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${channelColor(offer.channel)}">
-            ${channelIcon(offer.channel)} ${offer.channel || ''}
-          </span>
-          ${ts ? `<span class="text-xs text-gray-400 ml-auto">${ts}</span>` : ''}
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;flex-wrap:wrap;">
+          <span style="font-size:.9rem;font-weight:600;color:var(--ink);">${senderName}</span>
+          ${isTop ? `<span class="tag" style="background:var(--teal-lt);color:var(--teal-2);font-weight:700;">Top Pick</span>` : ''}
+          <span class="ch-pill ${channelClass(offer.channel)}" style="margin-left:auto;">${channelIcon(offer.channel)}&nbsp;${offer.channel || ''}</span>
+          ${ts ? `<span style="font-size:.73rem;color:var(--ink-4);">${ts}</span>` : ''}
         </div>
-        <p class="text-xs text-gray-500 line-clamp-1 mb-2">${offer.text || ''}</p>
-        <div class="flex flex-wrap gap-2">
-          ${p.budget_nis != null ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">₪${p.budget_nis.toLocaleString()}</span>` : ''}
-          ${p.move_in_date != null ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">${p.move_in_date}</span>` : ''}
-          ${p.employment_status != null ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">${p.employment_status.replace(/_/g,' ')}</span>` : ''}
-          ${p.has_pets === true ? `<span class="text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full">🐾 pets</span>` : ''}
-          ${p.has_pets === false ? `<span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full">no pets</span>` : ''}
-          ${p.num_roommates != null ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">${p.num_roommates === 0 ? 'alone' : `+${p.num_roommates} roommates`}</span>` : ''}
-          ${p.age != null ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">age ${p.age}</span>` : ''}
-          ${p.gender != null ? `<span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">${p.gender}</span>` : ''}
+        <p style="font-size:.78rem;color:var(--ink-4);margin-bottom:.5rem;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;">${offer.text || ''}</p>
+        <div style="display:flex;flex-wrap:wrap;gap:.3rem;">
+          ${g.budget_nis != null ? `<span class="tag">₪${g.budget_nis.toLocaleString()}</span>` : ''}
+          ${g.move_in_date != null ? `<span class="tag">${g.move_in_date}</span>` : ''}
+          ${primary.employment_status != null ? `<span class="tag">${primary.employment_status.replace(/_/g,' ')}</span>` : ''}
+          ${g.has_pets === true ? `<span class="tag" style="color:#c2410c;">🐾 pets</span>` : ''}
+          ${g.has_pets === false ? `<span class="tag" style="color:var(--teal-2);">no pets</span>` : ''}
+          ${g.household_size != null ? `<span class="tag">${g.household_size === 1 ? 'alone' : `${g.household_size} people`}</span>` : ''}
+          ${primary.age != null ? `<span class="tag">age ${primary.age}</span>` : ''}
+          ${primary.gender != null ? `<span class="tag">${primary.gender}</span>` : ''}
         </div>
-        ${r.error ? `<p class="text-xs text-red-500 mt-1">⚠ ${r.error}</p>` : ''}
+        ${r.error ? `<p style="font-size:.75rem;color:var(--red);margin-top:.35rem;">⚠ ${r.error}</p>` : ''}
       </div>
-      <button onclick="removeResult('${offerId}', event)"
-        class="flex-shrink-0 self-start opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 mt-0.5 p-1 rounded"
+      <button onclick="removeResult('${offerId}',event)"
+        style="flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--ink-4);opacity:0;transition:opacity .15s;padding:.2rem;border-radius:4px;align-self:flex-start;"
+        onmouseenter="this.style.opacity='1';this.style.color='var(--red)'" onmouseleave="this.style.opacity='0';this.style.color='var(--ink-4)'"
         title="Remove">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
-        </svg>
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
       </button>
     </div>`;
   }).join('');
 }
 
-// ── Modal tab switching ───────────────────────────────────────────────────
-function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    const active = btn.dataset.tab === name;
-    btn.className = 'tab-btn py-3 px-4 text-sm font-medium transition-colors ' +
-      (active ? 'tab-active' : 'tab-inactive');
-  });
-  document.querySelectorAll('.tab-panel').forEach(panel => {
-    panel.classList.toggle('hidden', !panel.id.endsWith(name));
-  });
-}
-
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-});
-
 // ── Modal ─────────────────────────────────────────────────────────────────
 function openModal(offerId) {
   const r = state.results.find(x => x.offer?.offer_id === offerId);
   if (!r) return;
-  const p = r.profile || {};
+  const g = r.group || {};
+  const applicants = g.applicants || [];
   const sc = r.score || {};
   const offer = r.offer || {};
-  const prov = p.provenance || {};
+  const groupProv = g.provenance || {};
   const ts = r.received_at ? new Date(r.received_at).toLocaleString() : null;
+  const primaryName = (applicants[0]?.name) || offer.sender || 'Tenant';
 
-  // Header
-  $('modal-title').textContent = p.name || offer.sender || 'Tenant Profile';
+  $('modal-title').textContent = applicants.length > 1
+    ? `Group of ${g.household_size || applicants.length} — ${primaryName}`
+    : primaryName;
+
   const badge = $('modal-score-badge');
   if (sc.score != null) {
     badge.textContent = `${sc.score.toFixed(1)} / 100`;
-    badge.className = `text-sm font-bold px-2.5 py-0.5 rounded-full ${badgeClass(sc.qualification)}`;
+    badge.className = 'badge';
+    badge.style.background = 'var(--sand-2)';
+    badge.style.color = 'var(--ink-3)';
   } else {
     badge.textContent = '';
+    badge.className = 'badge';
   }
 
-  // ── Tab: Profile ──────────────────────────────────────────────────────
-  const SCREENING = ['budget_nis','move_in_date','employment_status',
-                     'has_pets','num_roommates','age','gender','name','phone','preferred_language'];
+  // Profile tab
+  const GROUP_FIELDS = ['budget_nis','move_in_date','has_pets','household_size','preferred_language'];
+  const PERSON_FIELDS = ['employment_status','age','gender','name','phone'];
 
   let rawMsg = offer.text || '';
-  for (const [field, provObj] of Object.entries(prov)) {
+  const allProv = { ...groupProv };
+  applicants.forEach(p => Object.assign(allProv, p.provenance || {}));
+  for (const [, provObj] of Object.entries(allProv)) {
     if (provObj?.source_span) {
       rawMsg = rawMsg.split(provObj.source_span).join(`<mark>${provObj.source_span}</mark>`);
     }
   }
 
-  $('tab-profile').innerHTML = `
-    <!-- Score ring + meta -->
-    <div class="flex items-center gap-4">
-      ${sc.score != null ? scoreRing(sc.score) : ''}
-      <div class="flex-1">
-        <p class="text-2xl font-bold text-gray-900">${sc.score != null ? sc.score.toFixed(1) : 'N/A'}<span class="text-sm text-gray-400 font-normal"> / 100</span></p>
-        ${sc.qualification ? `<span class="text-sm font-semibold px-2.5 py-0.5 rounded-full ${badgeClass(sc.qualification)}">${sc.qualification}</span>` : ''}
-      </div>
-      <div class="text-right text-xs text-gray-400">
-        <p>${offer.channel || ''}</p>
-        <p class="truncate max-w-[120px]">${offer.sender || ''}</p>
-        ${ts ? `<p class="mt-0.5">${ts}</p>` : ''}
-      </div>
-    </div>
+  const rowStyle = 'background:var(--sand);border-radius:var(--radius-sm);padding:.5rem .7rem;';
+  const fieldHtml = fields => fields.map(k => `
+    <div style="${rowStyle}">
+      <p style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-4);margin-bottom:.15rem;">${fieldLabel(k)}</p>
+      <p style="font-size:.85rem;font-weight:500;color:var(--ink);">${formatVal(k, g[k])}</p>
+    </div>`).join('');
 
-    <!-- Original message -->
+  const applicantsHtml = applicants.length === 0 ? '' : `
     <div>
-      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Original Message</p>
-      <div class="bg-gray-50 rounded-xl px-4 py-3 text-sm text-gray-800 leading-relaxed" dir="auto">${rawMsg}</div>
-    </div>
-
-    <!-- Extracted fields grid -->
-    <div>
-      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Extracted Fields</p>
-      <div class="grid grid-cols-2 gap-2">
-        ${SCREENING.map(k => `
-          <div class="bg-gray-50 rounded-lg px-3 py-2">
-            <p class="text-xs text-gray-400">${fieldLabel(k)}</p>
-            <p class="text-sm font-medium text-gray-800 mt-0.5">${formatVal(k, p[k])}</p>
-            ${prov[k]?.source_span ? `<p class="text-xs text-indigo-500 mt-0.5 truncate" title="${prov[k].source_span}">↳ "${prov[k].source_span}"</p>` : ''}
-          </div>`).join('')}
-      </div>
-    </div>
-    ${r.error ? `<div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">⚠ ${r.error}</div>` : ''}
-  `;
-
-  // ── Tab: Breakdown ────────────────────────────────────────────────────
-  if (sc.rule_hits && sc.rule_hits.length) {
-    $('tab-breakdown').innerHTML = `
-      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Per-Dimension Scoring</p>
-      <p class="text-xs text-gray-400 mb-3">Points = compat × √weight. Dealbreaker applies a ×${(0.01).toFixed(2)} penalty to the final cosine score.</p>
-      <div class="flex flex-col gap-2">
-        ${sc.rule_hits.map(h => {
-          const icon = h.passed === true ? '✓' : h.passed === false ? '✗' : '?';
-          const iconCls = h.passed === true ? 'text-green-500 bg-green-50' : h.passed === false ? 'text-red-500 bg-red-50' : 'text-amber-500 bg-amber-50';
-          const isDealbreaker = h.rule === 'dealbreaker';
-          return `
-            <div class="flex items-start gap-3 rounded-xl border ${isDealbreaker ? 'border-red-200 bg-red-50' : 'border-gray-100 bg-gray-50'} px-3 py-2.5">
-              <span class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold mt-0.5 ${iconCls}">${icon}</span>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-0.5">
-                  <span class="text-xs font-semibold text-gray-700 capitalize">${h.rule.replace('_',' ')}</span>
-                  <span class="ml-auto text-xs font-mono text-gray-500 flex-shrink-0">${h.points_earned}/${h.points_possible}</span>
-                </div>
-                <p class="text-xs text-gray-600 leading-snug">${h.reason}</p>
-                ${h.points_possible > 0 ? `
-                  <div class="mt-1.5 bg-gray-200 rounded-full h-1.5">
-                    <div class="h-1.5 rounded-full ${h.passed === true ? 'bg-green-400' : h.passed === false ? 'bg-red-400' : 'bg-amber-400'}"
-                         style="width:${Math.round(h.points_earned/h.points_possible*100)}%"></div>
-                  </div>` : ''}
-              </div>
-            </div>`;
+      <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);margin-bottom:.55rem;">Applicants (${applicants.length})</p>
+      <div style="display:flex;flex-direction:column;gap:.6rem;">
+        ${applicants.map((p, i) => {
+          const prov = p.provenance || {};
+          return `<div style="border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.75rem .85rem;">
+            <p style="font-size:.8rem;font-weight:600;color:var(--ink-3);margin-bottom:.55rem;">Person ${i+1}${p.name ? ` — ${p.name}` : ''}</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;">
+              ${PERSON_FIELDS.map(k => `
+                <div style="${rowStyle}">
+                  <p style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-4);margin-bottom:.15rem;">${fieldLabel(k)}</p>
+                  <p style="font-size:.85rem;font-weight:500;color:var(--ink);">${formatVal(k, p[k])}</p>
+                  ${prov[k]?.source_span ? `<p style="font-size:.7rem;color:var(--teal);margin-top:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${prov[k].source_span}">↳ "${prov[k].source_span}"</p>` : ''}
+                </div>`).join('')}
+            </div>
+          </div>`;
         }).join('')}
       </div>
-      <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-        <span class="text-xs text-gray-500">Final score</span>
-        <span class="text-lg font-bold text-gray-900">${sc.score != null ? sc.score.toFixed(1) : '—'} <span class="text-sm text-gray-400 font-normal">/ 100</span></span>
+    </div>`;
+
+  $('tab-profile').innerHTML = `
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+      ${sc.score != null ? scoreRing(sc.score) : ''}
+      <div style="flex:1;">
+        <p style="font-size:1.6rem;font-weight:700;color:var(--ink);font-family:var(--mono);line-height:1;">${sc.score != null ? sc.score.toFixed(1) : 'N/A'}<span style="font-size:.85rem;color:var(--ink-4);font-weight:400;"> / 100</span></p>
+      </div>
+      <div style="text-align:right;font-size:.75rem;color:var(--ink-4);">
+        <p>${offer.channel || ''}</p>
+        <p style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${offer.sender || ''}</p>
+        ${ts ? `<p style="margin-top:.2rem;">${ts}</p>` : ''}
+      </div>
+    </div>
+
+    <div style="margin-bottom:1rem;">
+      <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);margin-bottom:.45rem;">Original Message</p>
+      <div style="background:var(--sand);border-radius:var(--radius-sm);padding:.7rem .85rem;font-size:.875rem;color:var(--ink);line-height:1.55;" dir="auto">${rawMsg}</div>
+    </div>
+
+    <div style="margin-bottom:1rem;">
+      <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);margin-bottom:.45rem;">Household</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;">${fieldHtml(GROUP_FIELDS)}</div>
+    </div>
+
+    ${applicantsHtml}
+    ${r.error ? `<div style="background:var(--red-lt);border:1.5px solid #f3c3c3;border-radius:var(--radius-sm);padding:.6rem .8rem;font-size:.84rem;color:var(--red);margin-top:.5rem;">⚠ ${r.error}</div>` : ''}
+  `;
+
+  // Breakdown tab
+  if (sc.rule_hits && sc.rule_hits.length) {
+    $('tab-breakdown').innerHTML = `
+      <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);margin-bottom:.4rem;">Per-Dimension Scoring</p>
+      <p class="caption" style="margin-bottom:.85rem;">Points = compat × √weight. A dealbreaker applies a ×0.01 penalty to the final cosine score.</p>
+      <div style="display:flex;flex-direction:column;gap:.5rem;">
+        ${sc.rule_hits.map(h => {
+          const icon = h.passed === true ? '✓' : h.passed === false ? '✗' : '?';
+          const iconColor = h.passed === true ? 'var(--teal)' : h.passed === false ? 'var(--red)' : 'var(--amber)';
+          const isDealbreaker = h.rule === 'dealbreaker';
+          const pct = h.points_possible > 0 ? Math.round(h.points_earned / h.points_possible * 100) : 0;
+          const barColor = h.passed === true ? 'var(--teal)' : h.passed === false ? 'var(--red)' : 'var(--amber)';
+          return `<div style="display:flex;align-items:flex-start;gap:.65rem;border:1.5px solid ${isDealbreaker ? '#f3c3c3' : 'var(--border)'};border-radius:var(--radius-sm);padding:.65rem .8rem;background:${isDealbreaker ? 'var(--red-lt)' : 'var(--white)'};">
+            <span style="width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:${iconColor};background:${iconColor}1a;margin-top:.1rem;">${icon}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.2rem;">
+                <span style="font-size:.8rem;font-weight:600;color:var(--ink);text-transform:capitalize;">${h.rule.replace('_',' ')}</span>
+                <span style="margin-left:auto;font-family:var(--mono);font-size:.75rem;color:var(--ink-4);flex-shrink:0;">${h.points_earned}/${h.points_possible}</span>
+              </div>
+              <p style="font-size:.78rem;color:var(--ink-3);line-height:1.4;margin-bottom:.35rem;">${h.reason}</p>
+              ${h.points_possible > 0 ? `<div class="score-bar-wrap"><div class="score-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:1rem;padding-top:.85rem;border-top:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:.8rem;color:var(--ink-4);">Final score</span>
+        <span style="font-size:1.25rem;font-weight:700;color:var(--ink);font-family:var(--mono);">${sc.score != null ? sc.score.toFixed(1) : '—'}<span style="font-size:.8rem;color:var(--ink-4);font-weight:400;"> / 100</span></span>
       </div>
     `;
   } else {
-    $('tab-breakdown').innerHTML = `<p class="text-sm text-gray-400 text-center py-8">No breakdown available.</p>`;
+    $('tab-breakdown').innerHTML = `<p style="text-align:center;color:var(--ink-4);padding:2.5rem;font-size:.875rem;">No breakdown available.</p>`;
   }
 
   switchTab('profile');
-  $('modal-backdrop').classList.remove('hidden');
-  $('modal-backdrop').classList.add('flex');
+  $('modal-backdrop').classList.add('open');
+}
+
+function closeModal() {
+  $('modal-backdrop').classList.remove('open');
 }
 
 $('modal-close').addEventListener('click', closeModal);
 $('modal-backdrop').addEventListener('click', e => { if (e.target === $('modal-backdrop')) closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-function closeModal() {
-  $('modal-backdrop').classList.add('hidden');
-  $('modal-backdrop').classList.remove('flex');
+
+// ── Modal tabs ────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.style.display = p.id.endsWith(name) ? '' : 'none';
+  });
 }
-
-// ── Activate columns ──────────────────────────────────────────────────────
-function activateOffers() {
-  $('col-offers').classList.remove('step-inactive');
-  $('col-results').classList.remove('step-inactive');
-}
-
-function showListingBadge(address) {
-  const b = $('listing-badge');
-  b.classList.remove('hidden');
-  b.classList.add('flex');
-  $('listing-badge-text').textContent = address;
-}
-
-// ── Saved listings (localStorage) ────────────────────────────────────────
-const SAVED_KEY = 'rentflow_saved_listings';
-
-function readFormSnapshot() {
-  return {
-    address:     $('f-address').value.trim(),
-    rent:        $('f-rent').value,
-    floor:       $('f-price-floor').value,
-    desc:        $('f-desc').value.trim(),
-    employment:  $('f-employment').checked,
-    pets:        $('f-pets').value,
-    maxOcc:      $('f-max-occ').value,
-    movein:      $('f-movein').value,
-    moveinStrict: $('f-movein-strict').checked,
-    minAge:      $('f-min-age').value,
-    maxAge:      $('f-max-age').value,
-    agePublic:   $('f-age-public').checked,
-    prefGender:  $('f-pref-gender').value,
-    genderPublic:$('f-gender-public').checked,
-  };
-}
-
-function applyFormSnapshot(s) {
-  $('f-address').value       = s.address     || '';
-  $('f-rent').value          = s.rent        || '';
-  $('f-price-floor').value   = s.floor       || '';
-  $('f-desc').value          = s.desc        || '';
-  $('f-employment').checked  = !!s.employment;
-  $('f-pets').value          = s.pets        || 'false';
-  $('f-max-occ').value       = s.maxOcc      || '';
-  $('f-movein').value        = s.movein      || '';
-  $('f-movein-strict').checked = !!s.moveinStrict;
-  $('f-min-age').value       = s.minAge      || '';
-  $('f-max-age').value       = s.maxAge      || '';
-  $('f-age-public').checked  = !!s.agePublic;
-  $('f-pref-gender').value   = s.prefGender  || '';
-  $('f-gender-public').checked = !!s.genderPublic;
-}
-
-function loadSaved() {
-  try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); }
-  catch { return []; }
-}
-
-function persistSaved(list) {
-  localStorage.setItem(SAVED_KEY, JSON.stringify(list));
-}
-
-function renderSavedListings() {
-  const list = loadSaved();
-  const wrap = $('saved-listings-wrap');
-  const container = $('saved-listings-list');
-  if (list.length === 0) { wrap.classList.add('hidden'); return; }
-  wrap.classList.remove('hidden');
-  container.innerHTML = list.map((s, i) => {
-    const label = s.address
-      ? `${s.address}${s.rent ? ' · ₪' + parseInt(s.rent).toLocaleString() : ''}`
-      : `Listing ${i + 1}`;
-    return `
-      <div class="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 hover:border-indigo-200 transition-colors">
-        <button type="button" class="flex-1 text-left text-sm text-gray-700 truncate hover:text-indigo-700 transition-colors"
-                onclick="loadSavedListing(${i})">${label}</button>
-        <button type="button" class="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
-                onclick="deleteSavedListing(${i})" title="Delete">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <path d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>`;
-  }).join('');
-}
-
-function loadSavedListing(i) {
-  const list = loadSaved();
-  if (!list[i]) return;
-  applyFormSnapshot(list[i]);
-  $('listing-success').classList.add('hidden');
-  $('listing-error').classList.add('hidden');
-}
-
-function deleteSavedListing(i) {
-  const list = loadSaved();
-  list.splice(i, 1);
-  persistSaved(list);
-  renderSavedListings();
-}
-
-$('save-listing-btn').addEventListener('click', () => {
-  const snap = readFormSnapshot();
-  if (!snap.address && !snap.rent) {
-    $('listing-error').textContent = 'Fill in at least an address or rent before saving.';
-    $('listing-error').classList.remove('hidden');
-    return;
-  }
-  $('listing-error').classList.add('hidden');
-  const list = loadSaved();
-  // Overwrite if same address already saved, otherwise append.
-  const existing = snap.address ? list.findIndex(s => s.address === snap.address) : -1;
-  if (existing >= 0) list[existing] = snap; else list.push(snap);
-  persistSaved(list);
-  renderSavedListings();
-  // Brief visual confirmation on the button
-  const btn = $('save-listing-btn');
-  btn.innerHTML = `<svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Saved`;
-  setTimeout(() => {
-    btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save`;
-  }, 1500);
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
-$('clear-saved-btn').addEventListener('click', () => {
-  persistSaved([]);
-  renderSavedListings();
-});
-
-// Render on load
-renderSavedListings();
-
-// ── Listing form ──────────────────────────────────────────────────────────
+// ── Make Listing Live ───────────────────────────────────────────────────────────────
 $('listing-form').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = $('listing-btn');
@@ -804,125 +995,64 @@ $('listing-form').addEventListener('submit', async e => {
     description: $('f-desc').value.trim() || null,
     criteria: {},
   };
-  if ($('f-price-floor').value) payload.criteria.lowest_price_nis = parseInt($('f-price-floor').value);
-  if ($('f-employment').checked) payload.criteria.employment_required = true;
-  payload.criteria.pets_allowed = $('f-pets').value === 'true';
-  if ($('f-max-occ').value) payload.criteria.max_occupants = parseInt($('f-max-occ').value);
+  const c = payload.criteria;
+
+  if ($('f-price-floor').value) c.lowest_price_nis = parseInt($('f-price-floor').value);
+  if ($('f-employment').checked) c.employment_required = true;
+  c.pets_allowed = $('f-pets-yes').checked;
+  if ($('f-max-occ').value) c.max_occupants = parseInt($('f-max-occ').value);
   if ($('f-movein').value) {
-    payload.criteria.move_in_by = $('f-movein').value;
-    payload.criteria.move_in_strict = $('f-movein-strict').checked;
+    c.move_in_by = $('f-movein').value;
+    c.move_in_strict = $('f-movein-strict').checked;
   }
-  if ($('f-min-age').value) payload.criteria.min_age = parseInt($('f-min-age').value);
-  if ($('f-max-age').value) payload.criteria.max_age = parseInt($('f-max-age').value);
-  if ($('f-min-age').value || $('f-max-age').value) {
-    payload.criteria.age_pref_public = $('f-age-public').checked;
-  }
+  if ($('f-min-age').value) c.min_age = parseInt($('f-min-age').value);
+  if ($('f-max-age').value) c.max_age = parseInt($('f-max-age').value);
+  if ($('f-min-age').value || $('f-max-age').value) c.age_pref_public = $('f-age-public').checked;
   const prefGender = $('f-pref-gender').value;
-  if (prefGender) {
-    payload.criteria.preferred_gender = prefGender;
-    payload.criteria.gender_pref_public = $('f-gender-public').checked;
-  }
+  if (prefGender) { c.preferred_gender = prefGender; c.gender_pref_public = $('f-gender-public').checked; }
+
+  // Weights (1–5 slider mapped to 0–100 internal scale)
+  c.budget_weight     = sliderToWeight($('w-budget').value);
+  c.pets_weight       = 100;
+  c.move_in_weight    = sliderToWeight($('w-movein').value);
+  c.employment_weight = sliderToWeight($('w-employment').value);
+  c.occupants_weight  = sliderToWeight($('w-occupants').value);
+  c.age_weight        = sliderToWeight($('w-age').value);
+  c.gender_weight     = sliderToWeight($('w-gender').value);
 
   const { ok, data } = await apiFetch('/listing', { method: 'POST', body: JSON.stringify(payload) });
 
   if (ok) {
     state.listingLive = true;
     state.listingId = data.listing_id;
-    state.offers = [];
     state.results = [];
-    $('listing-success').classList.remove('hidden');
-    $('listing-success-id').textContent = data.listing_id;
-    $('listing-error').classList.add('hidden');
-    showListingBadge(data.address);
-    activateOffers();
-    renderOfferFeed();
-    renderResults();
-  } else {
-    $('listing-error').classList.remove('hidden');
-    $('listing-error').textContent = data.detail || 'Failed to create listing.';
-  }
 
-  btn.disabled = false;
-  btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Go Live`;
-});
-
-// ── Offer form ────────────────────────────────────────────────────────────
-async function submitOffer(channel, sender, text) {
-  const offerId = `${channel}_${Date.now()}`;
-  const entry = { offer_id: offerId, channel, sender, text, status: 'running', error: null };
-  state.offers.push(entry);
-  renderOfferFeed();
-
-  // 1. Ingest
-  const { ok, status, data } = await apiFetch(`/webhook/${channel}`, {
-    method: 'POST',
-    body: JSON.stringify({ offer_id: offerId, sender, text }),
-  });
-
-  if (!ok) {
-    entry.status = 'error';
-    if (status === 409) {
-      entry.error = 'No active listing on server — click "Go Live" again.';
-      state.listingLive = false;
-      $('col-offers').classList.add('step-inactive');
-      $('col-results').classList.add('step-inactive');
-    } else {
-      entry.error = data.detail || 'Ingestion failed';
+    // Fetch full listing details for sidebar
+    const lr = await apiFetch('/listing');
+    if (lr.ok) {
+      state.listingData = lr.data;
+      renderSidebar(lr.data);
     }
-    renderOfferFeed();
-    return;
-  }
 
-  // 2. Run pipeline (extraction + scoring)
-  const { ok: ok2, data: data2 } = await apiFetch('/pipeline/run', {
-    method: 'POST',
-    body: JSON.stringify({ offer_id: offerId }),
-  });
+    $('live-badge-text').textContent = data.address || data.listing_id;
+    await refreshResults();
 
-  if (!ok2) {
-    entry.status = 'error';
-    entry.error = data2.detail || data2.error || 'Pipeline failed';
-    renderOfferFeed();
-    return;
-  }
-  if (data2.status === 'error') {
-    entry.status = 'error';
-    entry.error = data2.error || 'Extraction error';
-    renderOfferFeed();
+    document.body.classList.add('live');
   } else {
-    entry.status = 'done';
-    renderOfferFeed();
+    const errEl = $('listing-error');
+    errEl.textContent = data.detail || 'Failed to create listing.';
+    errEl.style.display = '';
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg> Make Listing Live`;
   }
 
-  await refreshResults();
-}
-
-$('offer-form').addEventListener('submit', async e => {
-  e.preventDefault();
-  const btn = $('offer-btn');
-  btn.disabled = true;
-  const ch = $('f-channel').value;
-  const sender = $('f-sender').value.trim() || `user_${Date.now()}`;
-  const text = $('f-text').value.trim();
-  if (!text) { btn.disabled = false; return; }
-  $('f-text').value = '';
-  await submitOffer(ch, sender, text);
   btn.disabled = false;
+  btn.innerHTML = `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg> Make Listing Live`;
 });
 
-// ── Fixtures ──────────────────────────────────────────────────────────────
-const fbWrap = $('fixture-btns');
-FIXTURES.forEach((fx, i) => {
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'text-xs bg-gray-100 hover:bg-indigo-50 hover:text-indigo-700 text-gray-600 px-2.5 py-1 rounded-full transition-colors';
-  btn.textContent = fx.label;
-  btn.addEventListener('click', async () => {
-    btn.disabled = true;
-    await submitOffer(fx.channel, fx.sender, fx.text);
-    btn.disabled = false;
-  });
-  fbWrap.appendChild(btn);
+// ── Back to edit ──────────────────────────────────────────────────────────
+$('back-btn').addEventListener('click', () => {
+  document.body.classList.remove('live');
 });
 
 // ── Refresh results ───────────────────────────────────────────────────────
@@ -938,20 +1068,229 @@ $('refresh-btn').addEventListener('click', refreshResults);
 
 $('sort-btn').addEventListener('click', () => {
   state.sortAsc = !state.sortAsc;
-  $('sort-label').textContent = state.sortAsc ? 'Low→High' : 'High→Low';
+  $('sort-label').textContent = state.sortAsc ? 'Low → High' : 'High → Low';
   renderResults();
 });
 
-// ── Boot: restore state if server already has a listing ──────────────────
+// ── Saved listings ────────────────────────────────────────────────────────
+const SAVED_KEY = 'rentflow_saved_listings_v2';
+
+function readFormSnapshot() {
+  return {
+    address:     $('f-address').value.trim(),
+    rent:        $('f-rent').value,
+    floor:       $('f-price-floor').value,
+    desc:        $('f-desc').value.trim(),
+    employment:  $('f-employment').checked,
+    petsYes:     $('f-pets-yes').checked,
+    maxOcc:      $('f-max-occ').value,
+    movein:      $('f-movein').value,
+    moveinStrict: $('f-movein-strict').checked,
+    minAge:      $('f-min-age').value,
+    maxAge:      $('f-max-age').value,
+    agePublic:   $('f-age-public').checked,
+    prefGender:  $('f-pref-gender').value,
+    genderPublic:$('f-gender-public').checked,
+    wBudget:     $('w-budget').value,
+    wPets:       $('w-pets').value,
+    wMovein:     $('w-movein').value,
+    wEmployment: $('w-employment').value,
+    wOccupants:  $('w-occupants').value,
+    wAge:        $('w-age').value,
+    wGender:     $('w-gender').value,
+  };
+}
+
+function applyFormSnapshot(s) {
+  $('f-address').value         = s.address     || '';
+  $('f-rent').value            = s.rent        || '';
+  $('f-price-floor').value     = s.floor       || '';
+  $('f-desc').value            = s.desc        || '';
+  $('f-employment').checked    = !!s.employment;
+  $('f-pets-yes').checked      = s.petsYes !== false;
+  $('f-pets-no').checked       = s.petsYes === false;
+  $('f-max-occ').value         = s.maxOcc      || '';
+  $('f-movein').value          = s.movein      || '';
+  $('f-movein-strict').checked = !!s.moveinStrict;
+  $('f-min-age').value         = s.minAge      || '';
+  $('f-max-age').value         = s.maxAge      || '';
+  $('f-age-public').checked    = !!s.agePublic;
+  $('f-pref-gender').value     = s.prefGender  || '';
+  $('f-gender-public').checked = !!s.genderPublic;
+  [['wBudget','w-budget'],['wPets','w-pets'],['wMovein','w-movein'],
+   ['wEmployment','w-employment'],['wOccupants','w-occupants'],
+   ['wAge','w-age'],['wGender','w-gender']].forEach(([k, id]) => {
+    const v = s[k] != null ? String(s[k]) : '3';
+    const el = $(id); if (!el) return;
+    el.value = v;
+    syncWeightLabel(id.slice(2));
+  });
+  updateWeightStates();
+}
+
+function loadSaved() {
+  try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); }
+  catch { return []; }
+}
+function persistSaved(list) { localStorage.setItem(SAVED_KEY, JSON.stringify(list)); }
+
+function renderSavedListings() {
+  const list = loadSaved();
+  const wrap = $('saved-wrap');
+  const container = $('saved-list');
+  if (!list.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  container.innerHTML = list.map((s, i) => {
+    const label = s.address
+      ? `${s.address}${s.rent ? ' · ₪' + parseInt(s.rent).toLocaleString() : ''}`
+      : `Listing ${i + 1}`;
+    return `<div style="display:flex;align-items:center;gap:.5rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:.5rem .75rem;background:var(--sand);">
+      <button type="button" style="flex:1;text-align:left;font-size:.84rem;color:var(--ink-2);background:none;border:none;cursor:pointer;font-family:var(--font);" onclick="loadSavedListing(${i})">${label}</button>
+      <button type="button" style="background:none;border:none;cursor:pointer;color:var(--ink-4);padding:.1rem;" onclick="deleteSavedListing(${i})">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function loadSavedListing(i) {
+  const list = loadSaved();
+  if (!list[i]) return;
+  applyFormSnapshot(list[i]);
+  $('listing-error').style.display = 'none';
+}
+
+function deleteSavedListing(i) {
+  const list = loadSaved();
+  list.splice(i, 1);
+  persistSaved(list);
+  renderSavedListings();
+}
+
+$('save-listing-btn').addEventListener('click', () => {
+  const snap = readFormSnapshot();
+  if (!snap.address && !snap.rent) {
+    const errEl = $('listing-error');
+    errEl.textContent = 'Fill in at least an address or rent before saving.';
+    errEl.style.display = '';
+    return;
+  }
+  $('listing-error').style.display = 'none';
+  const list = loadSaved();
+  const existing = snap.address ? list.findIndex(s => s.address === snap.address) : -1;
+  if (existing >= 0) list[existing] = snap; else list.push(snap);
+  persistSaved(list);
+  renderSavedListings();
+
+  const btn = $('save-listing-btn');
+  btn.innerHTML = `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Saved`;
+  setTimeout(() => {
+    btn.innerHTML = `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save`;
+  }, 1500);
+});
+
+$('clear-saved-btn').addEventListener('click', () => { persistSaved([]); renderSavedListings(); });
+
+// ── Reactive weight enable/disable ────────────────────────────────────────
+function updateWeightStates() {
+  // Move-in strict: force max weight and freeze the slider
+  const strict = $('f-movein-strict').checked;
+  const moveinSlider = $('w-movein');
+  if (strict) {
+    moveinSlider.value = 5;
+    syncWeightLabel('movein');
+    moveinSlider.disabled = true;
+    moveinSlider.style.opacity = '.45';
+    moveinSlider.style.cursor = 'not-allowed';
+  } else {
+    moveinSlider.disabled = false;
+    moveinSlider.style.opacity = '';
+    moveinSlider.style.cursor = '';
+  }
+  // Age: disabled when both min and max are blank
+  const ageActive = $('f-min-age').value.trim() || $('f-max-age').value.trim();
+  setWeightDisabled('age', !ageActive);
+  // Gender: disabled when no preference selected
+  setWeightDisabled('gender', !$('f-pref-gender').value);
+}
+
+$('f-movein-strict').addEventListener('change', updateWeightStates);
+$('f-min-age').addEventListener('input', updateWeightStates);
+$('f-max-age').addEventListener('input', updateWeightStates);
+$('f-pref-gender').addEventListener('change', updateWeightStates);
+
+// Initialise all weight highlight labels on page load
+['budget','movein','employment','age','gender'].forEach(syncWeightLabel);
+updateWeightStates();
+renderSavedListings();
+
+// ── Send Message modal ────────────────────────────────────────────────────
+function openSendModal() {
+  $('sm-error').style.display = 'none';
+  $('sm-text').value = '';
+  $('send-modal-backdrop').style.display = 'flex';
+  setTimeout(() => $('sm-text').focus(), 50);
+}
+function closeSendModal() {
+  $('send-modal-backdrop').style.display = 'none';
+}
+
+$('send-msg-btn').addEventListener('click', openSendModal);
+$('send-modal-close').addEventListener('click', closeSendModal);
+$('send-modal-backdrop').addEventListener('click', e => { if (e.target === $('send-modal-backdrop')) closeSendModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSendModal(); });
+
+$('sm-submit').addEventListener('click', async () => {
+  const sender = $('sm-sender').value.trim() || '+972500000000';
+  const text   = $('sm-text').value.trim();
+  const errEl  = $('sm-error');
+  if (!text) { errEl.textContent = 'Message cannot be empty.'; errEl.style.display = ''; return; }
+  errEl.style.display = 'none';
+
+  const btn = $('sm-submit');
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Sending…`;
+
+  const { ok, status, data } = await apiFetch('/webhook/whatsapp', {
+    method: 'POST',
+    body: JSON.stringify({ sender, text }),
+  });
+
+  if (!ok) {
+    errEl.textContent = data.detail || `Error ${status}`;
+    errEl.style.display = '';
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Send`;
+    return;
+  }
+
+  const offer_id = data.offer_id;
+  closeSendModal();
+
+  // Run pipeline then refresh results
+  await apiFetch('/pipeline/run', { method: 'POST', body: JSON.stringify({ offer_id }) });
+  await refreshResults();
+
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Send`;
+});
+
+// ── Boot: always start on the create screen ───────────────────────────────
+// Prefetch server state so the dashboard is ready if the user goes live,
+// but never auto-navigate away from the listing form on refresh.
 (async () => {
   const { ok, data } = await apiFetch('/healthz');
   if (ok && data.listing_live) {
     state.listingLive = true;
     state.listingId = data.listing_id;
     const lr = await apiFetch('/listing');
-    if (lr.ok) showListingBadge(lr.data.address || data.listing_id);
-    activateOffers();
+    if (lr.ok) {
+      state.listingData = lr.data;
+      renderSidebar(lr.data);
+      $('live-badge-text').textContent = lr.data.address || data.listing_id;
+    }
     await refreshResults();
+    // intentionally NOT switching to the live screen — user lands on create
   }
 })();
 </script>

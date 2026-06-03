@@ -24,6 +24,8 @@ Endpoints:
     Returns one offer by ID.
 """
 
+import subprocess
+import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path as FilePath
@@ -37,7 +39,7 @@ from rentflow.extraction.engine import ExtractionEngine, ExtractionError
 from rentflow.ingestion.store import InMemoryOfferStore, OfferStore
 from rentflow.offer.models import Channel, Listing, RawOffer, ScoringCriteria
 from rentflow.scoring.engine import ScoringEngine
-from rentflow.scoring.vectors import DIM_LABELS, criteria_to_vector, profile_to_vector
+from rentflow.scoring.vectors import DIM_LABELS, criteria_to_vector, group_to_vector
 
 app = FastAPI(
     title="TLV-RentFlow Ingestion API",
@@ -47,7 +49,9 @@ app = FastAPI(
 
 _store: OfferStore = InMemoryOfferStore()
 
-# Pipeline results: offer_id -> {offer, profile, score_result}
+_DRIP_SCRIPT = FilePath(__file__).parents[3] / "scripts" / "drip_offers.py"
+
+# Pipeline results: offer_id -> {offer, group, score_result}
 # Populated by POST /pipeline/run. Cleared when a new listing is posted.
 _pipeline_results: dict[str, dict[str, Any]] = {}
 
@@ -137,6 +141,14 @@ async def create_listing(payload: ListingPayload) -> ListingResponse:
     )
     _store.set_listing(listing)
     _pipeline_results.clear()
+
+    if _DRIP_SCRIPT.exists():
+        subprocess.Popen(
+            [sys.executable, str(_DRIP_SCRIPT)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
     return ListingResponse(
         listing_id=listing_id,
         address=listing.address,
@@ -249,7 +261,7 @@ async def pipeline_run(body: PipelineRunRequest) -> PipelineRunResponse:
     except (EnvironmentError, ExtractionError) as exc:
         _pipeline_results[offer.offer_id] = {
             "offer": offer.model_dump(mode="json"),
-            "profile": None,
+            "group": None,
             "score": None,
             "received_at": offer.timestamp.isoformat(),
             "error": str(exc),
@@ -257,20 +269,20 @@ async def pipeline_run(body: PipelineRunRequest) -> PipelineRunResponse:
         return PipelineRunResponse(offer_id=offer.offer_id, status="error", error=str(exc))
 
     scorer = ScoringEngine(listing.criteria, rent_nis=listing.rent_nis)
-    score_result = scorer.score(result.profile)
+    score_result = scorer.score(result.group)
 
     c_vec = criteria_to_vector(listing.criteria)
-    p_vec = profile_to_vector(result.profile, listing.criteria, listing.rent_nis)
+    g_vec = group_to_vector(result.group, listing.criteria, listing.rent_nis)
 
     _pipeline_results[offer.offer_id] = {
         "offer": offer.model_dump(mode="json"),
-        "profile": result.profile.model_dump(mode="json"),
+        "group": result.group.model_dump(mode="json"),
         "score": score_result.model_dump(mode="json"),
         "received_at": offer.timestamp.isoformat(),
         "vectors": {
             "dims": DIM_LABELS,
             "landlord": [round(v, 4) for v in c_vec],
-            "tenant": [round(v, 4) for v in p_vec],
+            "tenant": [round(v, 4) for v in g_vec],
         },
         "error": None,
     }
