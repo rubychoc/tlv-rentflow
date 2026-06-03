@@ -1,6 +1,6 @@
 # TLV RentFlow
 
-An async pipeline that ingests tenant messages from WhatsApp, Facebook, and Yad2, extracts structured applicant data via an LLM, and scores candidates against landlord criteria.
+An async pipeline that ingests tenant messages from WhatsApp or Facebook, extracts structured applicant data via an LLM, and scores candidates against landlord criteria.
 
 ## Running locally
 
@@ -20,7 +20,7 @@ Tenant message
       │
       ▼
 ┌─────────────┐
-│  Ingestion  │  FastAPI webhook — receives raw messages from WhatsApp, Facebook, or Yad2
+│  Ingestion  │  FastAPI webhook — receives raw messages from WhatsApp or Facebook
 └──────┬──────┘
        │
        ▼
