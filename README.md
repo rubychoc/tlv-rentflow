@@ -7,40 +7,37 @@ An async pipeline that ingests tenant messages from WhatsApp, Facebook, and Yad2
 **Prerequisites:** Python 3.11+, an OpenAI API key.
 
 ```bash
-# 1. Clone and set up
-git clone <repo-url>
-cd tlv-rentflow
-python -m venv .venv && source .venv/bin/activate
-pip install -e .
-
-# 2. Add your OpenAI key
-echo "OPENAI_API_KEY=sk-..." > .env
-
-# 3. Start the server
-uvicorn rentflow.ingestion.app:app --reload --port 8000
-
-# 4. (Optional) Send sample tenant messages
-python scripts/send_offers.py
+git clone https://github.com/rubychoc/tlv-rentflow.git && cd tlv-rentflow
+./start.sh
 ```
 
-The API is now live at `http://localhost:8000`.
+The script sets up the environment, prompts for your API key on first run, and opens the app at `http://localhost:8000`.
 
-## Running tests
-
-```bash
-pytest                    # unit tests (no API key needed)
-pytest tests/integration/ # integration tests (requires .env with OPENAI_API_KEY)
-```
-
-## How it works
+## Pipeline
 
 ```
-Incoming message  →  Extract TenantProfile (GPT-4.1-mini)  →  Score against criteria  →  Approved / Review / Rejected
+Tenant message
+      │
+      ▼
+┌─────────────┐
+│  Ingestion  │  FastAPI webhook — receives raw messages from WhatsApp, Facebook, or Yad2
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Extraction │  GPT-4.1-mini — parses multilingual (Hebrew/English/slang) text into
+│             │  structured applicant profiles (budget, move-in date, employment, etc.)
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│   Scoring   │  Deterministic — cosine similarity against landlord criteria,
+│             │  hard dealbreakers (pets, budget, occupants), 0–100 score
+└──────┬──────┘
+       │
+       ▼
+  Approved / Review / Rejected
 ```
-
-1. **Ingestion** — FastAPI webhook at `POST /webhook/{channel}` accepts raw tenant messages from any platform.
-2. **Extraction** — GPT-4.1-mini parses multilingual (Hebrew/English/slang) messages into structured applicant data.
-3. **Scoring** — Pure deterministic scoring using cosine similarity against landlord-defined criteria (budget, pets, move-in date, occupants, age, gender).
 
 ## Project layout
 
@@ -50,7 +47,10 @@ src/rentflow/
   extraction/  # LLM extraction logic
   scoring/     # Deterministic scoring engine
   offer/       # Shared Pydantic data models
+scripts/       # Utilities for sending sample messages and stress testing
 data/          # Sample fixture messages
-scripts/       # Utilities for sending test offers and stress testing
-tests/         # Unit and integration tests
 ```
+
+---
+
+Tests live in `tests/` — unit tests require no API key; integration tests hit the real OpenAI API.
