@@ -31,8 +31,8 @@ Tenant message
        │
        ▼
 ┌─────────────┐
-│   Scoring   │  Deterministic — cosine similarity against landlord criteria,
-│             │  hard dealbreakers (pets, budget, occupants), 0–100 score
+│   Scoring   │  Deterministic — weighted dot product against landlord criteria,
+│             │  hard dealbreakers (pets, budget, # occupants), 0–100 score
 └──────┬──────┘
        │
        ▼
